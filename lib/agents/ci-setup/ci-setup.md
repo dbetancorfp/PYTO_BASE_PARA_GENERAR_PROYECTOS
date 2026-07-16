@@ -33,7 +33,7 @@ No forma parte del flujo lineal del pipeline.
 |---------|---------|-----------------|
 | `ci.yml` | push + PR a `main` | Type-check + `bun test` + `bun build` |
 | `e2e.yml` | push a `main` | Arrancar servidor + ejecutar Cypress |
-| `deploy-docs.yml` | push a `main` | Publicar `docs/` en GitHub Pages — **no tocar, ya existe** |
+| `deploy-docs.yml` | push a `main` con cambios en `docs/**`/`mkdocs.yml` | Publicar `docs/` en GitHub Pages — ya existe, **no la regeneres** salvo que el usuario pida explícitamente cambiar cómo se despliega la documentación |
 
 ---
 
@@ -52,6 +52,7 @@ Lee estos ficheros antes de generar nada:
 ```
 .github/workflows/ci.yml
 .github/workflows/e2e.yml
+.github/workflows/deploy-docs.yml   # ya existe — no regenerar salvo petición explícita
 ```
 
 ---
@@ -163,6 +164,16 @@ jobs:
         env:
           CYPRESS_BASE_URL: http://localhost:3000
 ```
+
+## Especificación de `deploy-docs.yml`
+
+Ya existe en `.github/workflows/deploy-docs.yml` — referencia por si hace falta
+regenerarlo. Usa `actions/setup-python` + `pip install -r requirements.txt` +
+`mkdocs build --strict` + `actions/upload-pages-artifact` + `actions/deploy-pages`, con
+`permissions: pages: write, id-token: write` y trigger en `push` a `main` sobre
+`docs/**`, `mkdocs.yml`, `requirements.txt`. Requiere GitHub Pages habilitado en el repo
+con "Source: GitHub Actions" (`gh api repos/<owner>/<repo>/pages -X POST -f
+build_type=workflow`, una sola vez).
 
 ---
 
