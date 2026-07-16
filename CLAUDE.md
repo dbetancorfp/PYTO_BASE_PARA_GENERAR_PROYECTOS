@@ -142,6 +142,17 @@ bunx cypress run
 `use-cases.md`, `api-contracts.md` y `review-report.md` son Markdown libre, sin schema —
 revisados por el humano o por el siguiente agente que los lee directamente.
 
+## Librería de patrones
+
+`lib/patterns/` contiene plantillas de estructura (no código ejecutable) para las formas
+más comunes entre vistas — CRUD backend, select en cascada, filtro reactivo, tabla CRUD
+con edición inline. `implementer` las consulta antes de escribir un servicio o componente
+que encaje en una de esas formas, para no reinventar la estructura vista a vista ni
+producir variantes que `reviewer` tendría que rechazar por duplicación/inconsistencia de
+diseño. Se eligió esto — plantillas fijas leídas directamente — en vez de RAG/few-shot
+sobre vistas anteriores porque las vistas del proyecto son muy distintas entre sí; lo que
+se repite entre ellas es la *forma* estructural (CRUD, cascada, filtro), no el contenido.
+
 ## RAG *(planeado, no construido)*
 
 La idea de fondo de este framework es que el Orquestador y `view-designer` consulten una
@@ -258,6 +269,7 @@ src/
 lib/
   agents/          # un subdirectorio por agente — solo .md, sin script standalone
   schemas/         # ui-spec.schema.js, functional-spec.schema.js (Zod, elementId)
+  patterns/        # plantillas de estructura reutilizables — ver "Librería de patrones"
 
 .claude/commands/  # punteros de una línea a lib/agents/*/*.md
 tecnologias/       # decisiones de stack detalladas por capa (bbdd, code, front, qa, ux)

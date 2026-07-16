@@ -52,11 +52,24 @@ src/
 lib/
   agents/          # un subdirectorio por agente — solo .md
   schemas/         # ui-spec.schema.js, functional-spec.schema.js (Zod)
+  patterns/        # plantillas de estructura reutilizables (ver "Librería de patrones")
 
 .claude/commands/  # punteros de una línea a lib/agents/*/*.md
 tecnologias/       # decisiones de stack detalladas por capa
 docs/              # esta documentación (MkDocs)
 ```
+
+## Librería de patrones
+
+`lib/patterns/` contiene plantillas de estructura — no código ejecutable — para las formas
+que se repiten entre vistas distintas: CRUD backend (repository + service + route), select
+en cascada, filtro reactivo, tabla CRUD con edición inline. `implementer` las consulta
+antes de escribir un servicio o componente que encaje en una de esas formas.
+
+Se optó por esto en vez de RAG/few-shot sobre vistas anteriores porque, para este
+proyecto, las vistas son muy distintas entre sí en contenido — lo que se repite es la
+*forma* estructural, no la vista completa. Ver [Pipeline](pipeline.md#rag-planeado-no-construido)
+para el razonamiento sobre por qué el RAG en sí sigue sin construirse.
 
 ## Frontend: Web Components
 

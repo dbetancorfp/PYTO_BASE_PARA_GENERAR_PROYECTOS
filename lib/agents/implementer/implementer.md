@@ -149,6 +149,26 @@ evitar. Si un elemento necesita una clase que `classesFor()` no cubre, añádela
 
 ---
 
+## Librería de patrones — consúltala antes de escribir estructura nueva
+
+`lib/patterns/` (índice en `lib/patterns/README.md`) contiene plantillas de las formas más
+comunes que aparecen en vistas distintas: CRUD backend (repository + service + route),
+select en cascada, filtro reactivo, tabla CRUD con edición inline. No son código
+ejecutable — son la forma que debe tomar tu implementación cuando el problema encaja,
+con placeholders (`<Entity>`, `<entity>`) que adaptas a la entidad real de la vista.
+
+Por qué: dos vistas distintas que necesitan "una tabla con edición inline" no deberían
+producir dos estructuras diferentes solo porque las implementaste en sesiones distintas —
+eso es exactamente la varianza que `reviewer` penaliza como duplicación/inconsistencia de
+diseño. Copiar la forma del patrón y rellenar los campos reales es más barato que
+reinventarla, y más barato que corregirla después de un rechazo de `reviewer`.
+
+**Antes de implementar cualquier servicio o componente**: comprueba si su forma coincide
+con alguno de `lib/patterns/`. Si coincide, pártelo de ahí. Si no coincide con ninguno,
+implementa lo que la spec pida sin forzar un patrón que no encaja.
+
+---
+
 ## Reglas de implementación
 
 - Implementa solo lo que los tests piden — ni más, ni menos
@@ -170,21 +190,26 @@ evitar. Si un elemento necesita una clase que `classesFor()` no cubre, añádela
 2. Lee `api-contracts.md` completo
 3. Lee `schema-changes.sql` si existe, para entender el modelo de datos nuevo de esta vista
 4. Lee `ui-spec.json` para los componentes frontend
+5. Lee `lib/patterns/README.md` — identifica qué endpoints/componentes de esta vista
+   encajan con un patrón existente antes de diseñar su estructura desde cero
 
 ### Paso 2 — Implementar backend
 
 Para cada endpoint en `api-contracts.md`:
-1. Crea la ruta en `src/backend/src/routes/`
-2. Implementa la lógica mínima para que el test pase
-3. Ejecuta `bun test` tras cada ruta — no avances si hay regresiones
+1. Si es un CRUD estándar de una entidad, parte de `lib/patterns/crud-repository.md`
+2. Crea la ruta en `src/backend/src/routes/`
+3. Implementa la lógica mínima para que el test pase
+4. Ejecuta `bun test` tras cada ruta — no avances si hay regresiones
 
 ### Paso 3 — Implementar frontend
 
 Para cada componente en `ui-spec.json`:
-1. Crea `src/frontend/src/<elementId>.ts`
-2. Implementa `connectedCallback`, `disconnectedCallback`, `_render`
-3. Usa lit-html y el patrón disposables de `CLAUDE.md`
-4. Llama `attachSharedStyles(this.shadowRoot!)` en `connectedCallback` y usa
+1. Si su forma coincide con un patrón (`crud-table-component.md`,
+   `cascading-select.md`, `reactive-filter.md`), parte de esa plantilla
+2. Crea `src/frontend/src/<elementId>.ts`
+3. Implementa `connectedCallback`, `disconnectedCallback`, `_render`
+4. Usa lit-html y el patrón disposables de `CLAUDE.md`
+5. Llama `attachSharedStyles(this.shadowRoot!)` en `connectedCallback` y usa
    `classesFor(type, variant, size)` para las clases de cada elemento
    visual/interactivo (ver "Estilo visual" más arriba) — nunca mapeo inline
 
