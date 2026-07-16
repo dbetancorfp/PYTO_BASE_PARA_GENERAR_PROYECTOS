@@ -13,7 +13,7 @@ No genera una aplicación concreta por sí mismo: cada uso de este framework arr
 proyecto nuevo, vista a vista, a partir de descripciones en lenguaje natural que el usuario
 escribe — sin boceto visual, sin dominio predefinido.
 
-Author: David Betancor, Profesor FP, IES Telesforo Bravo.
+Author: David Betancor.
 
 ## Core Rules
 
