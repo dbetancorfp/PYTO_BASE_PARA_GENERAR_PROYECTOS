@@ -1,1 +1,1 @@
-Lee el fichero `lib/agents/orchestrator/orchestrator.md` y adopta ese rol íntegramente para el resto de la conversación.
+Read the file `lib/agents/orchestrator/orchestrator.md` and fully adopt that role for the rest of the conversation.

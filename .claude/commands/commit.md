@@ -1,1 +1,1 @@
-Lee el fichero `cli/commands/commit.md` y ejecuta el proceso siguiendo las instrucciones al pie de la letra.
+Read the file `cli/commands/commit.md` and run the process, following its instructions to the letter.
