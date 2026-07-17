@@ -1,15 +1,15 @@
-# Patrón — CRUD backend (repository + service + route)
+# Pattern — Backend CRUD (repository + service + route)
 
-Cuándo aplica: un endpoint gestiona alta/consulta/edición/baja de una entidad. Cubre DIP
-(interfaz + doble implementación) y el mapeo de errores de dominio → status HTTP.
+When it applies: an endpoint manages create/read/update/delete for an entity. Covers DIP
+(interface + double implementation) and the domain-error-to-HTTP-status mapping.
 
-## Repository — interfaz + implementación Postgres + doble en memoria
+## Repository — interface + Postgres implementation + in-memory double
 
 ```ts
 // repositories/<entity>.repository.ts
 export interface <Entity> {
   id: string;
-  // ...campos reales de la vista
+  // ...the view's real fields
 }
 
 export interface <Entity>Repository {
@@ -38,7 +38,7 @@ export class Pg<Entity>Repository implements <Entity>Repository {
     return row ?? null;
   }
 
-  // create/update/delete siguen el mismo patrón: tagged template, nunca concatenación
+  // create/update/delete follow the same pattern: tagged template, never concatenation
 }
 ```
 
@@ -52,31 +52,31 @@ export class InMemory<Entity>Repository implements <Entity>Repository {
   async findAll(): Promise<<Entity>[]> {
     return [...this.store.values()];
   }
-  // resto de métodos operan sobre `store`, mismo contrato que la interfaz
+  // the rest of the methods operate on `store`, same contract as the interface
 }
 ```
 
-## Service — lógica de negocio, nunca SQL directo
+## Service — business logic, never direct SQL
 
 ```ts
 // services/<entity>.service.ts
 import type { <Entity>Repository } from '../repositories/<entity>.repository';
 
 export class <Entity>Service {
-  constructor(private readonly repo: <Entity>Repository) {}   // inyección — nunca `new Pg<Entity>Repository()` aquí
+  constructor(private readonly repo: <Entity>Repository) {}   // injection — never `new Pg<Entity>Repository()` here
 
   async list(): Promise<<Entity>[]> {
     return this.repo.findAll();
   }
 
   async create(data: Omit<<Entity>, 'id'>): Promise<<Entity>> {
-    // validaciones/reglas de negocio de la vista van aquí, no en la ruta
+    // the view's validations/business rules go here, not in the route
     return this.repo.create(data);
   }
 }
 ```
 
-## Route — un fichero por entidad, sin lógica de negocio inline
+## Route — one file per entity, no inline business logic
 
 ```ts
 // routes/<entity>.ts
@@ -98,7 +98,7 @@ export function <entity>Router(service: <Entity>Service): Router {
 }
 ```
 
-## Composition root — dónde se decide la implementación real
+## Composition root — where the real implementation gets decided
 
 ```ts
 // app.ts
@@ -108,7 +108,7 @@ const service = new <Entity>Service(repo);
 app.use('/api/<entities>', <entity>Router(service));
 ```
 
-## Errores de dominio
+## Domain errors
 
-No lances `Error` genérico desde el service. Usa una clase de error con `code`, mapeada
-centralizadamente en `routes/error.ts` (ver `implementer.md` → "Reglas de implementación").
+Don't throw a generic `Error` from the service. Use an error class with a `code`, mapped
+centrally in `routes/error.ts` (see `implementer.md` → "Implementation rules").

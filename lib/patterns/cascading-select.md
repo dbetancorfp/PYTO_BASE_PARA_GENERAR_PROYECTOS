@@ -1,10 +1,10 @@
-# Patrón — Select en cascada
+# Pattern — Cascading select
 
-Cuándo aplica: cambiar un select debe recargar las opciones de otro (padre → hijo), y
-resetear los selects que dependen de él. `ui-spec.json` lo señala vía `depends_on` en el
-componente hijo.
+When it applies: changing one select must reload another's options (parent → child), and
+reset the selects that depend on it. `ui-spec.json` flags this via `depends_on` on the
+child component.
 
-## Controller — lógica de cascada extraída del componente (SRP)
+## Controller — cascade logic extracted out of the component (SRP)
 
 ```ts
 // controllers/cascade-select.controller.ts
@@ -18,7 +18,7 @@ export class CascadeSelectController<T> {
   private readonly levels: CascadeLevel<T>[];
 
   constructor(levels: CascadeLevel<T>[]) {
-    this.levels = levels;   // orden = orden de dependencia, padre primero
+    this.levels = levels;   // order = dependency order, parent first
   }
 
   async onLevelChanged(index: number, value: string | null): Promise<Map<string, T[]>> {
@@ -28,14 +28,14 @@ export class CascadeSelectController<T> {
       level.onReset?.();
       const options = value === null ? [] : await level.fetchOptions(value);
       results.set(level.elementId, options);
-      value = null; // solo el nivel inmediatamente afectado recibe el valor real
+      value = null; // only the immediately affected level receives the real value
     }
     return results;
   }
 }
 ```
 
-## Uso desde el componente — el componente solo renderiza, no decide la cascada
+## Usage from the component — the component only renders, it doesn't decide the cascade
 
 ```ts
 private readonly cascade = new CascadeSelectController([
@@ -46,16 +46,16 @@ private readonly cascade = new CascadeSelectController([
 
 private async _handleYearChange(value: string): Promise<void> {
   const resets = await this.cascade.onLevelChanged(0, value);
-  this._optionsByLevel = resets;   // dispara _render()
+  this._optionsByLevel = resets;   // triggers _render()
 }
 ```
 
-## Reglas
+## Rules
 
-- El componente nunca decide "qué recargar después" inline — eso es exactamente la
-  responsabilidad que `CascadeSelectController` extrae (si lo escribes dentro del
-  componente, `reviewer` lo marcará como violación de SRP).
-- Un botón/acción que depende de que **todos** los niveles tengan valor (ej. "Descargar")
-  se deshabilita comprobando el último nivel de la cascada, no cada nivel por separado.
-- Si algún nivel debe filtrarse por el usuario autenticado (ej. "solo mis módulos"), ese
-  filtro va en `fetchOptions`, nunca en el controller genérico.
+- The component never decides "what to reload next" inline — that's exactly the
+  responsibility `CascadeSelectController` extracts (if you write it inside the component,
+  `reviewer` will flag it as an SRP violation).
+- A button/action that depends on **every** level having a value (e.g. "Download") gets
+  disabled by checking the last level of the cascade, not each level separately.
+- If any level must be filtered by the authenticated user (e.g. "only my modules"), that
+  filter goes in `fetchOptions`, never in the generic controller.

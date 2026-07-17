@@ -4,80 +4,83 @@
 
 | Layer | Technology |
 |-------|------------|
-| Ejecución de agentes | Claude Code — slash commands apuntan a un role file en `lib/agents/*/*.md` |
-| Coordinación | Agente Orquestador (`lib/agents/orchestrator/`) |
-| Almacenamiento de artefactos | Filesystem local (`vistas/`, `src/`) |
-| Base de datos de aplicación | PostgreSQL 16, real y viva — `DATABASE_URL` pendiente de configurar |
-| Cliente Postgres | `Bun.SQL` nativo — sin `pg`/node-postgres ni ORM |
+| Agent execution | Claude Code — slash commands point to a role file in `lib/agents/*/*.md` |
+| Coordination | Orchestrator agent (`lib/agents/orchestrator/`) |
+| Artifact storage | Local filesystem (`views/`, `src/`) |
+| Application database | PostgreSQL 16, real and live — `DATABASE_URL` pending configuration |
+| Postgres client | `Bun.SQL` native driver — no `pg`/node-postgres, no ORM |
 | Backend | Bun + Express 5 + TypeScript |
-| Validación de artefactos del pipeline | Zod (`lib/schemas/`) |
-| Frontend | Web Components nativos + lit-html + Tailwind CSS 3.x + TypeScript |
-| Build frontend | `bun build` |
-| Tests unitarios | `bun test` |
-| Tests e2e | Cypress |
-| Calidad de código | SOLID (auditoría del agente `reviewer`) + SonarCloud (cobertura 100 %) |
+| Pipeline artifact validation | Zod (`lib/schemas/`) |
+| Frontend | Native Web Components + lit-html + Tailwind CSS 3.x + TypeScript |
+| Frontend build | `bun build` |
+| Unit tests | `bun test` |
+| E2E tests | Cypress |
+| Code quality | SOLID (audited by the `reviewer` agent) + SonarCloud (100% coverage) |
 | CI/CD | GitHub Actions |
 | Docs | MkDocs + Material for MkDocs → GitHub Pages |
 
-Detalle completo por capa en `tecnologias/` (raíz del repo):
+Full detail per layer in `tecnologias/` (repo root):
 [`tecnologia_bbdd.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_bbdd.md),
 [`tecnologia_code.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_code.md),
 [`tecnologia_front.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_front.md),
 [`tecnologia_qa.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_qa.md),
 [`tecnologia_ux.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_ux.md).
 
+(These five files keep their Spanish `tecnologia_*` filenames as an established repo
+convention; their content is in English like the rest of the documentation.)
+
 ## Repository structure
 
 ```
-vistas/
-  <nombre-vista>/
-    descripcion_vista_<nombre>.md   # input del usuario
-    ui-spec.json                    # salida view-designer
-    functional-spec.json            # salida view-designer
-    use-cases.md                    # salida requirement-architect
-    api-contracts.md                # salida requirement-architect
-    schema-changes.sql              # salida requirement-architect (si aplica)
-    review-report.md                # salida reviewer
+views/
+  <view-name>/
+    description_<view-name>.md      # user input
+    ui-spec.json                    # view-designer output
+    functional-spec.json            # view-designer output
+    use-cases.md                    # requirement-architect output
+    api-contracts.md                # requirement-architect output
+    schema-changes.sql              # requirement-architect output (if needed)
+    review-report.md                # reviewer output
 
 src/
   backend/
-    src/                            # salida implementer
-    tests/                          # salida tdd-engineer
+    src/                            # implementer output
+    tests/                          # tdd-engineer output
   frontend/
-    src/                            # salida implementer (Web Components)
-    dist/                           # salida de bun build
-    tests/                          # salida tdd-engineer
-    cypress/e2e/                    # salida e2e-engineer
+    src/                            # implementer output (Web Components)
+    dist/                           # bun build output
+    tests/                          # tdd-engineer output
+    cypress/e2e/                    # e2e-engineer output
 
 lib/
-  agents/          # un subdirectorio por agente — solo .md
+  agents/          # one subdirectory per agent — .md only
   schemas/         # ui-spec.schema.js, functional-spec.schema.js (Zod)
-  patterns/        # plantillas de estructura reutilizables (ver "Librería de patrones")
+  patterns/        # reusable structural templates (see "Pattern library")
 
-.claude/commands/  # punteros de una línea a lib/agents/*/*.md
-tecnologias/       # decisiones de stack detalladas por capa
-docs/              # esta documentación (MkDocs)
+.claude/commands/  # one-line pointers to lib/agents/*/*.md
+tecnologias/       # detailed stack decisions per layer
+docs/              # this documentation (MkDocs)
 ```
 
-## Librería de patrones
+## Pattern library
 
-`lib/patterns/` contiene plantillas de estructura — no código ejecutable — para las formas
-que se repiten entre vistas distintas: CRUD backend (repository + service + route), select
-en cascada, filtro reactivo, tabla CRUD con edición inline. `implementer` las consulta
-antes de escribir un servicio o componente que encaje en una de esas formas.
+`lib/patterns/` holds structural templates — not runnable code — for shapes that repeat
+across different views: backend CRUD (repository + service + route), cascading select,
+reactive filter, inline-edit CRUD table. `implementer` checks them before writing a service
+or component that fits one of those shapes.
 
-Se optó por esto en vez de RAG/few-shot sobre vistas anteriores porque, para este
-proyecto, las vistas son muy distintas entre sí en contenido — lo que se repite es la
-*forma* estructural, no la vista completa. Ver [Pipeline](pipeline.md#rag-planeado-no-construido)
-para el razonamiento sobre por qué el RAG en sí sigue sin construirse.
+This was chosen over RAG/few-shot from prior views because, for this project, views are
+meant to be very different from each other in content — what repeats is structural *shape*,
+not the view itself. See [Pipeline](pipeline.md#rag-planned-not-built) for the reasoning
+behind why RAG itself remains unbuilt.
 
 ## Frontend: Web Components
 
-Un fichero por componente. Shadow DOM siempre abierto. Render solo con lit-html — nunca
-`innerHTML`. La restricción dura es **sin Shadow DOM anidado**: `data-element-id` debe
-estar en el elemento nativo para que funcionen los selectores de Cypress y de los tests
-unitarios, y un segundo shadow root anidado rompe ambos.
+One file per component. Shadow DOM always open. Render with lit-html only — never
+`innerHTML`. The hard constraint is **no nested Shadow DOM**: `data-element-id` must sit on
+the native element for Cypress's and the unit tests' selectors to work, and a second nested
+shadow root breaks both.
 
-Ver la sección "Frontend: Web Components" de
+See the "Frontend: Web Components" section of
 [`CLAUDE.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/CLAUDE.md)
-para el esqueleto de componente completo y las convenciones de naming.
+for the full component skeleton and naming conventions.

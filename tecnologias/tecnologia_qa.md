@@ -1,66 +1,68 @@
-# Tecnologías de QA (testing y calidad)
+# QA technologies (testing and quality)
 
-Fuente: `package.json`, `.github/workflows/`, `sonar-project.properties`,
+Source: `package.json`, `.github/workflows/`, `sonar-project.properties`,
 `lib/agents/reviewer/`, `lib/agents/tdd-engineer/`.
 
-## Tests unitarios
+## Unit tests
 
-- **`bun test`** (runner nativo de Bun, API compatible con Jest: `describe`/`it`/`expect`).
-  Ejecutado con `--max-workers=1` (evita condiciones de carrera entre tests que comparten
-  estado/puerto en el backend).
-- Cada `describe()` referencia un `elementId` (convención obligatoria de `CLAUDE.md`) para
-  trazar cada test hasta el elemento de la vista que verifica.
-- **`@happy-dom/global-registrator`** — DOM simulado para poder testear Web Components
-  (Shadow DOM, `customElements`) dentro de `bun test`, sin navegador real.
-- Backend: repositorios Postgres se testean con un doble propio de `Bun.SQL`
-  (`tests/helpers/fake-sql.ts`), no contra una base de datos real en tests unitarios.
-- Cobertura: `bun test --coverage --coverage-reporter=lcov` → `coverage/lcov.info`,
-  consumido por SonarCloud. **Gate: 100 % de cobertura** (ver `lib/agents/reviewer/`).
+- **`bun test`** (Bun's native runner, Jest-compatible API: `describe`/`it`/`expect`). Run
+  with `--max-workers=1` (avoids race conditions between tests that share state/port on the
+  backend).
+- Every `describe()` references an `elementId` (mandatory `CLAUDE.md` convention) to trace
+  each test back to the view element it verifies.
+- **`@happy-dom/global-registrator`** — simulated DOM to test Web Components (Shadow DOM,
+  `customElements`) inside `bun test`, without a real browser.
+- Backend: Postgres repositories are tested with a custom `Bun.SQL` double
+  (`tests/helpers/fake-sql.ts`), not against a real database in unit tests.
+- Coverage: `bun test --coverage --coverage-reporter=lcov` → `coverage/lcov.info`,
+  consumed by SonarCloud. **Gate: 100% coverage** (see `lib/agents/reviewer/`).
 
-## Tests end-to-end
+## End-to-end tests
 
-- **Cypress** — specs por caso de uso en `src/frontend/cypress/e2e/uc-XX-*.cy.ts`, flujo
-  principal + alternativo crítico por caso de uso.
-- `includeShadowDom: true` (necesario por el Shadow DOM de cada componente).
-- **`start-server-and-test`** orquesta el arranque del servidor Express en modo
-  `DATA_BACKEND=postgres` + `cypress run` en un único comando.
-- Seed de datos deterministas antes de cada suite contra Postgres real — no hay mocking de
-  red en e2e.
-- No hay workflow de CI para Cypress (explícito en `CLAUDE.md`): e2e solo corre en local,
-  a diferencia de los tests unitarios que sí corren en GitHub Actions.
+- **Cypress** — specs per use case in `src/frontend/cypress/e2e/uc-XX-*.cy.ts`, main flow +
+  critical alternative flow per use case.
+- `includeShadowDom: true` (required because of each component's Shadow DOM).
+- **`start-server-and-test`** orchestrates starting the Express server in `DATA_BACKEND=
+  postgres` mode + `cypress run` in a single command.
+- Deterministic data seeded before each suite against real Postgres — no network mocking in
+  e2e.
+- No CI workflow for Cypress (explicit in `CLAUDE.md`): e2e only runs locally, unlike unit
+  tests, which do run in GitHub Actions.
 
-## Análisis estático / calidad de código
+## Static analysis / code quality
 
-- **TypeScript strict** vía `tsc --noEmit` (script `type-check` en `package.json`) —
-  gate de tipos sin emitir JS (el JS real lo produce `bun build`).
-- **SonarCloud** (`sonarsource/sonarcloud-github-action`) — bugs, vulnerabilidades,
-  code smells, duplicación de código y **cobertura al 100 %**, en cada push a `main` y
-  cada PR. Configurado por `sonar-project.properties` (excluye artefactos generados del
-  pipeline, `docs/`, `dist/`, `site/`, ficheros no-código). Complementa (no sustituye) la
-  revisión SOLID de `reviewer` — SonarCloud no detecta violaciones de diseño orientado a
-  objetos.
-- Revisión de principios **SOLID** como checklist explícita, auditada por `reviewer`, que
-  rechaza y hace que el Orquestador reinvoque a `implementer` hasta cumplir.
+- **Strict TypeScript** via `tsc --noEmit` (`type-check` script in `package.json`) — a type
+  gate with no JS emitted (the real JS comes from `bun build`).
+- **SonarCloud** (`sonarsource/sonarcloud-github-action`) — bugs, vulnerabilities, code
+  smells, code duplication, and **100% coverage**, on every push to `main` and every PR.
+  Configured via `sonar-project.properties` (excludes pipeline-generated artifacts,
+  `docs/`, `dist/`, `site/`, non-code files) — **this file doesn't exist in the repo yet**;
+  it gets created once SonarCloud is actually wired up (via `/ci-setup` or by hand).
+  Complements (doesn't replace) `reviewer`'s SOLID review — SonarCloud doesn't detect
+  object-oriented design violations.
+- **SOLID** principles reviewed as an explicit checklist, audited by `reviewer`, which
+  rejects the code and makes the Orchestrator re-invoke `implementer` until it complies.
 
 ## CI/CD
 
 - **GitHub Actions**:
-  - `.github/workflows/ci.yml` — en push/PR: levanta un contenedor de servicio
-    `postgres:16`, instala con `bun install --frozen-lockfile`, corre `bun test` con
-    cobertura, publica a SonarCloud.
-  - `.github/workflows/deploy-docs.yml` — al cambiar `docs/**`/`mkdocs.yml` (si `docs/`
-    existe): `mkdocs build --strict` (Python) → `actions/upload-pages-artifact` →
-    `actions/deploy-pages` (GitHub Pages).
-- No hay pipeline de despliegue de la aplicación en sí (solo de la documentación).
+  - `.github/workflows/ci.yml` — on-demand output of `/ci-setup`, **not generated yet**.
+    Once generated: on push/PR, spins up a `postgres:16` service container, installs with
+    `bun install --frozen-lockfile`, runs `bun test` with coverage, publishes to
+    SonarCloud.
+  - `.github/workflows/deploy-docs.yml` — **already exists and is active**: on changes to
+    `docs/**`/`mkdocs.yml`, runs `mkdocs build --strict` (Python) →
+    `actions/upload-pages-artifact` → `actions/deploy-pages` (GitHub Pages).
+- There is no deployment pipeline for the application itself (only for the documentation).
 
-## Proceso de QA dirigido por agentes (metodología, no herramienta)
+## Agent-driven QA process (methodology, not a tool)
 
-- **TDD obligatorio** (`CLAUDE.md`): tests en rojo antes que implementación —
-  `tdd-engineer` genera los tests desde los criterios de aceptación de
-  `functional-spec.json`; `implementer` escribe el mínimo código para ponerlos en verde.
-- **Revisión humana explícita** en la fase de diseño (view-designer → requirement-architect
-  → tdd-engineer): el Orquestador no avanza de un agente al siguiente sin aprobación del
-  usuario.
-- **Bucle autónomo** en la fase de construcción: `implementer` → tests → `reviewer`
-  (SOLID + SonarCloud, cobertura 100 %) → `e2e-engineer`, con reinicio automático del ciclo
-  ante cualquier fallo (máximo 10 ciclos) — ver `lib/agents/orchestrator/orchestrator.md`.
+- **TDD is mandatory** (`CLAUDE.md`): tests red before implementation — `tdd-engineer`
+  generates the tests from `functional-spec.json`'s acceptance criteria; `implementer`
+  writes the minimal code to turn them green.
+- **Explicit human review** during the design phase (view-designer → requirement-architect
+  → tdd-engineer): the Orchestrator doesn't move from one agent to the next without user
+  approval.
+- **Autonomous loop** during the build phase: `implementer` → tests → `reviewer` (SOLID +
+  SonarCloud, 100% coverage) → `e2e-engineer`, with an automatic cycle restart on any
+  failure (up to 10 cycles) — see `lib/agents/orchestrator/orchestrator.md`.

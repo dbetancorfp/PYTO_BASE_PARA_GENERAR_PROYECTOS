@@ -149,7 +149,7 @@ Confirm:
 
 # What to avoid
 
-- Subject that is a file path: `docs/arquitectura.html` ✗
+- Subject that is a file path: `docs/architecture.md` ✗
 - Subject that is code: `` `const FS = null` `` ✗
 - Vague subject: "Update documentation", "Minor fixes", "WIP" ✗
 - Body that restates the diff: "Changed Node.js to Bun in CLAUDE.md line 34" ✗

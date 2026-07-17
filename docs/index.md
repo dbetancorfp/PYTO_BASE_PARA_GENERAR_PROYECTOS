@@ -1,44 +1,44 @@
 # PYTO Base Para Generar Proyectos
 
-Framework genérico, agnóstico de dominio, para generar aplicaciones web vista a vista
-mediante un pipeline de agentes [Claude Code](https://claude.com/claude-code) coordinados
-por un agente **Orquestador**, apoyado en una base de datos PostgreSQL real.
+A generic, domain-agnostic framework for generating web applications one view at a time,
+through a pipeline of [Claude Code](https://claude.com/claude-code) agents coordinated by
+an **Orchestrator** agent, backed by a real PostgreSQL database.
 
-No genera una aplicación concreta por sí mismo: cada uso de este framework arranca un
-proyecto nuevo, vista a vista, a partir de descripciones en lenguaje natural que el usuario
-escribe — sin boceto visual, sin dominio predefinido.
+It does not generate a concrete application by itself: every use of this framework starts a
+new project, view by view, from natural-language descriptions the user writes — no visual
+mockup, no predefined domain.
 
-## Cómo empezar
+## Getting started
 
-Habla con el Orquestador:
+Talk to the Orchestrator:
 
 ```
 /orchestrator
 ```
 
-Y dale una vista para diseñar:
+And give it a view to design:
 
 ```
-lee vistas/<vista>/descripcion_vista_<vista>.md, tablas: [...]
+read views/<view>/description_<view>.md, tables: [...]
 ```
 
-A partir de ahí, el Orquestador se encarga de ejecutar el resto de agentes del pipeline —
-parándose a pedir tu revisión en la fase de diseño, y corriendo de forma autónoma (hasta
-10 ciclos) en la fase de construcción.
+From there, the Orchestrator runs the rest of the pipeline's agents — stopping to ask for
+your review during the design phase, and running autonomously (up to 10 cycles) during the
+build phase.
 
-Ver [Pipeline](pipeline.md) para el detalle de las dos fases y los agentes implicados, y
-[Architecture](architecture.md) para las decisiones de stack técnico.
+See [Pipeline](pipeline.md) for the two phases and the agents involved, and
+[Architecture](architecture.md) for the technical stack decisions.
 
-## Estado del proyecto
+## Project status
 
-- ✅ Esqueleto del pipeline (agentes, schemas, estructura de carpetas)
-- ⏳ `DATABASE_URL` pendiente de configurar — ver `.env.example`
-- ⏳ RAG (`knowledge_base` con pgvector + embeddings) — diseñado, no construido todavía
-- ⏳ Sin ninguna vista generada todavía
+- ✅ Pipeline skeleton (agents, schemas, folder structure)
+- ⏳ `DATABASE_URL` pending configuration — see `.env.example`
+- ⏳ RAG (`knowledge_base` with pgvector + embeddings) — designed, not built yet
+- ⏳ No view generated yet
 
-## Fuente de verdad
+## Source of truth
 
-Las reglas completas del proyecto viven en
+The project's full rules live in
 [`CLAUDE.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/CLAUDE.md)
-en la raíz del repositorio — esta documentación lo resume para lectura humana, pero
-`CLAUDE.md` manda en caso de discrepancia.
+at the repository root — this documentation summarizes it for human reading, but
+`CLAUDE.md` wins in case of discrepancy.

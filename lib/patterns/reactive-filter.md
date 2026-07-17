@@ -1,10 +1,10 @@
-# Patrón — Filtro reactivo
+# Pattern — Reactive filter
 
-Cuándo aplica: una lista debe filtrarse mientras el usuario escribe (`props.is_reactive:
-true` en `ui-spec.json`). Regla del proyecto: sin debounce de terceros, y sin re-fetch al
-servidor en cada tecla si el dataset ya está en memoria.
+When it applies: a list must filter as the user types (`props.is_reactive: true` in
+`ui-spec.json`). Project rule: no third-party debounce, and no server re-fetch on every
+keystroke if the dataset is already in memory.
 
-## Controller — filtrado extraído del componente (SRP)
+## Controller — filtering extracted out of the component (SRP)
 
 ```ts
 // controllers/reactive-filter.controller.ts
@@ -25,7 +25,7 @@ export class ReactiveFilterController<T> {
 }
 ```
 
-## Uso desde el componente
+## Usage from the component
 
 ```ts
 private readonly filterCtrl = new ReactiveFilterController<Entity>(
@@ -33,15 +33,15 @@ private readonly filterCtrl = new ReactiveFilterController<Entity>(
 );
 
 private _handleInput(term: string): void {
-  this._visibleRows = this.filterCtrl.filter(term);   // dispara _render(), sin red
+  this._visibleRows = this.filterCtrl.filter(term);   // triggers _render(), no network
 }
 ```
 
-## Cuándo sí hace falta red (dataset grande, no cabe en memoria)
+## When you do need the network (large dataset, doesn't fit in memory)
 
-Si el dataset es demasiado grande para filtrar en cliente, el filtro reactivo llama al
-backend — pero sigue sin debounce de terceros: usa `AbortController` para cancelar la
-petición anterior si el usuario sigue escribiendo, no un `setTimeout`.
+If the dataset is too large to filter client-side, the reactive filter calls the backend —
+but still without third-party debounce: use `AbortController` to cancel the previous
+request if the user keeps typing, not a `setTimeout`.
 
 ```ts
 private _pendingFilter: AbortController | null = null;
@@ -54,9 +54,10 @@ private async _handleInput(term: string): Promise<void> {
 }
 ```
 
-## Reglas
+## Rules
 
-- El componente delega el filtrado (o la llamada de red) al controller — no contiene
-  lógica `if (term.length > 0) { ... }` propia dispersa entre el render y el handler.
-- El estado "sin resultados" es un estado explícito del componente (`states` en
-  `ui-spec.json`), no un array vacío sin feedback visual.
+- The component delegates filtering (or the network call) to the controller — it doesn't
+  contain its own `if (term.length > 0) { ... }` logic scattered between the render and
+  the handler.
+- The "no results" state is an explicit component state (`states` in `ui-spec.json`), not
+  an empty array with no visual feedback.

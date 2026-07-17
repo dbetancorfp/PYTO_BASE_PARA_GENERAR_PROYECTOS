@@ -1,22 +1,22 @@
 # Pattern library
 
-Plantillas de estructura, no código ejecutable. `implementer` las lee antes de escribir un
-componente o servicio que encaje en una de estas formas, y adapta los placeholders
-(`<Entity>`, `<entity>`, `<field>`) a la vista concreta — nunca las copia literalmente sin
-adaptar tipos y campos reales.
+Structural templates, not runnable code. `implementer` reads them before writing a
+component or service that fits one of these shapes, and adapts the placeholders
+(`<Entity>`, `<entity>`, `<field>`) to the concrete view — never copies them literally
+without adapting real types and fields.
 
-**Por qué existen**: reducen la varianza entre vistas distintas implementadas por
-`implementer` en sesiones distintas, y evitan violaciones SOLID/duplicación que `reviewer`
-tendría que rechazar después — más barato prevenir la violación que corregirla en el bucle
-de la Fase B.
+**Why these exist**: they reduce variance between different views implemented by
+`implementer` in different sessions, and prevent SOLID/duplication violations that
+`reviewer` would otherwise have to reject afterward — preventing the violation is cheaper
+than fixing it inside the Phase B loop.
 
-**Cuándo NO usar un patrón de aquí**: si la forma del problema no encaja con ninguno,
-no fuerces el patrón — implementa lo que la spec pida. Esta librería cubre las formas más
-comunes, no todas las posibles.
+**When NOT to use a pattern from here**: if the problem's shape doesn't match any of them,
+don't force the pattern — implement what the spec asks for. This library covers the most
+common shapes, not every possible one.
 
-| Patrón | Fichero | Cuándo aplica |
-|--------|---------|---------------|
-| CRUD backend | [`crud-repository.md`](crud-repository.md) | Un endpoint gestiona alta/consulta/edición/baja de una entidad |
-| Select en cascada | [`cascading-select.md`](cascading-select.md) | Un select recarga las opciones de otro al cambiar (padre → hijo) |
-| Filtro reactivo | [`reactive-filter.md`](reactive-filter.md) | Una lista debe filtrarse mientras el usuario escribe |
-| Tabla CRUD (frontend) | [`crud-table-component.md`](crud-table-component.md) | Una vista lista filas de una entidad con edición inline y borrado |
+| Pattern | File | When it applies |
+|---------|------|-------------------|
+| Backend CRUD | [`crud-repository.md`](crud-repository.md) | An endpoint manages create/read/update/delete for an entity |
+| Cascading select | [`cascading-select.md`](cascading-select.md) | One select reloads another's options when it changes (parent → child) |
+| Reactive filter | [`reactive-filter.md`](reactive-filter.md) | A list must filter as the user types |
+| CRUD table (frontend) | [`crud-table-component.md`](crud-table-component.md) | A view lists an entity's rows with inline editing and deletion |

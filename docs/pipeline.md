@@ -1,54 +1,54 @@
 # Pipeline
 
-Cada vista pasa por dos fases con reglas de control opuestas, coordinadas por el
-**Orquestador** (`/orchestrator`) — en el uso normal no invocas al resto de agentes
-directamente.
+Every view goes through two phases with opposite control rules, coordinated by the
+**Orchestrator** (`/orchestrator`) — in normal use you don't invoke the other agents
+directly.
 
 ```
-Fase A — paso a paso, revisión humana obligatoria en cada punto
-  tú: "lee vistas/<vista>/descripcion_vista_X.md, tablas: [...]"
-    → view-designer          → ui-spec.json + functional-spec.json → revisión humana → rehaz | sigue
-    → requirement-architect   → use-cases.md + api-contracts.md (+ schema-changes.sql si aplica) → revisión humana → rehaz | sigue
-    → tdd-engineer            → tests TDD (rojo) → revisión humana → rehaz | "implementa"
+Phase A — step by step, human review required at every point
+  you: "read views/<view>/description_<view>.md, tables: [...]"
+    → view-designer          → ui-spec.json + functional-spec.json → human review → redo | continue
+    → requirement-architect   → use-cases.md + api-contracts.md (+ schema-changes.sql if needed) → human review → redo | continue
+    → tdd-engineer            → TDD tests (red) → human review → redo | "implement"
 
-Fase B — autónoma, máximo 10 ciclos completos, sin parar
-    → implementer escribe/corrige código → tests TDD
-         fail → repite implementer (no consume ciclo)
-         pass → reviewer (SOLID + SonarCloud, cobertura 100 %)
-              fail → vuelve a implementer (reinicia ciclo, +1)
+Phase B — autonomous, up to 10 full cycles, no stopping
+    → implementer writes/fixes code → TDD tests
+         fail → re-run implementer (doesn't consume a cycle)
+         pass → reviewer (SOLID + SonarCloud, 100% coverage gate)
+              fail → back to implementer (restarts the cycle, +1)
               pass → e2e-engineer (Cypress)
-                   fail → vuelve a implementer (reinicia ciclo, +1)
-                   pass → Orquestador avisa: "vista completa"
-    → tras 10 ciclos sin converger → Orquestador avisa del fallo
+                   fail → back to implementer (restarts the cycle, +1)
+                   pass → Orchestrator announces: "view complete"
+    → after 10 cycles without converging → Orchestrator reports the failure
 ```
 
-No existe boceto visual ni numeración externa de elementos. Cada elemento de una vista
-recibe un **`elementId`** (string, kebab-case) asignado por `view-designer` — es el
-identificador que atraviesa el resto del pipeline:
-`ui-spec.json → functional-spec.json → use-cases.md → tests → código`.
+There is no visual mockup and no external element numbering. Every element of a view gets
+an **`elementId`** (kebab-case string) assigned by `view-designer` — this is the identifier
+that runs through the rest of the pipeline:
+`ui-spec.json → functional-spec.json → use-cases.md → tests → code`.
 
-## Agentes
+## Agents
 
-| Agente | Responsabilidad | Input | Output |
-|--------|-----------------|-------|--------|
-| `orchestrator` | Punto de entrada único; decide qué agente ejecutar, gestiona revisión humana (Fase A) y el bucle autónomo (Fase B, máx. 10 ciclos) | Instrucción del usuario + estado de la vista | Avisos al usuario en cada punto de control |
-| `view-designer` | Diseña la UI y el comportamiento de una vista a partir de su descripción en lenguaje natural; introspecciona la BBDD real si `DATABASE_URL` está configurada | `vistas/<vista>/descripcion_vista_<vista>.md` | `vistas/<vista>/ui-spec.json` + `vistas/<vista>/functional-spec.json` |
-| `requirement-architect` | Casos de uso + contratos API + cambios incrementales de schema si la vista los necesita | `ui-spec.json` + `functional-spec.json` | `vistas/<vista>/use-cases.md` + `vistas/<vista>/api-contracts.md` (+ `schema-changes.sql`) |
-| `tdd-engineer` | Tests unitarios en rojo a partir de los criterios de aceptación | `use-cases.md` + `api-contracts.md` | `src/{backend,frontend}/tests/*.test.ts` |
-| `implementer` | Código mínimo para que los tests pasen; también corrige código en la Fase B | Tests en rojo + specs | `src/{backend,frontend}/src/` |
-| `reviewer` | Auditoría SOLID + SonarCloud (gate: cobertura 100 %) | Código + tests | `vistas/<vista>/review-report.md` |
-| `e2e-engineer` | Tests Cypress por caso de uso | `use-cases.md` + specs | `src/frontend/cypress/e2e/*.cy.ts` |
-| `ci-setup` *(on-demand)* | Workflows de GitHub Actions | `CLAUDE.md` + `package.json` | `.github/workflows/*.yml` |
-| `doc-reviewer` *(on-demand)* | Audita coherencia de toda la documentación frente al estado real del repo | Todo lo anterior | Informe (sin escritura) |
+| Agent | Responsibility | Input | Output |
+|-------|-----------------|-------|--------|
+| `orchestrator` | Single entry point; decides which agent to run, manages human review (Phase A) and the autonomous loop (Phase B, max. 10 cycles) | User instruction + view state | Notifications to the user at every checkpoint |
+| `view-designer` | Designs the UI and behavior of a view from its natural-language description; introspects the real DB if `DATABASE_URL` is configured | `views/<view>/description_<view>.md` | `views/<view>/ui-spec.json` + `views/<view>/functional-spec.json` |
+| `requirement-architect` | Use cases + API contracts + incremental schema changes if the view needs them | `ui-spec.json` + `functional-spec.json` | `views/<view>/use-cases.md` + `views/<view>/api-contracts.md` (+ `schema-changes.sql`) |
+| `tdd-engineer` | Red unit tests from the acceptance criteria | `use-cases.md` + `api-contracts.md` | `src/{backend,frontend}/tests/*.test.ts` |
+| `implementer` | Minimal code to make the tests pass; also fixes code during Phase B | Red tests + specs | `src/{backend,frontend}/src/` |
+| `reviewer` | SOLID + SonarCloud audit (gate: 100% coverage) | Code + tests | `views/<view>/review-report.md` |
+| `e2e-engineer` | Cypress tests per use case | `use-cases.md` + specs | `src/frontend/cypress/e2e/*.cy.ts` |
+| `ci-setup` *(on-demand)* | GitHub Actions workflows | `CLAUDE.md` + `package.json` | `.github/workflows/*.yml` |
+| `doc-reviewer` *(on-demand)* | Audits the consistency of all documentation against the repo's real state | Everything above | Report (no writes) |
 
-Cada agente es un role file (`lib/agents/<agente>/<agente>.md`) que Claude Code lee y
-ejecuta directamente en sesión, disparado por su slash command
-(`.claude/commands/<agente>.md`) o por la herramienta `Skill`.
+Each agent is a role file (`lib/agents/<agent>/<agent>.md`) that Claude Code reads and runs
+directly in-session, triggered by its slash command (`.claude/commands/<agent>.md`) or by
+the `Skill` tool.
 
-## RAG *(planeado, no construido)*
+## RAG *(planned, not built)*
 
-El Orquestador y `view-designer` deberían poder consultar una `knowledge_base`
-(PostgreSQL + pgvector, embeddings) indexando las descripciones de vista ya escritas, los
-artefactos generados y el schema real de Postgres — para dar contexto entre vistas sin que
-el usuario tenga que repetirlo cada vez. Esto no existe todavía; se construirá como tarea
-propia cuando toque.
+The Orchestrator and `view-designer` should eventually be able to query a `knowledge_base`
+(PostgreSQL + pgvector, embeddings) indexing the view descriptions already written, the
+generated artifacts, and the real Postgres schema — to give context across views without
+the user having to repeat itself every time. This doesn't exist yet; it will be built as
+its own task when it's time.

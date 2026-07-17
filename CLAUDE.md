@@ -4,117 +4,116 @@ alwaysApply: true
 
 ## Project
 
-**PYTO_BASE_PARA_GENERAR_PROYECTOS** — framework genérico, agnóstico de dominio, para generar
-aplicaciones web vista a vista mediante un pipeline de agentes Claude Code coordinados por
-un Orquestador conversacional, apoyado en una base de datos PostgreSQL real y (a futuro) en
-un sistema RAG que da contexto entre vistas.
+**PYTO_BASE_PARA_GENERAR_PROYECTOS** — a generic, domain-agnostic framework for generating
+web applications one view at a time, through a pipeline of Claude Code agents coordinated
+by a conversational Orchestrator, backed by a real PostgreSQL database and (eventually) a
+RAG system that gives context across views.
 
-No genera una aplicación concreta por sí mismo: cada uso de este framework arranca un
-proyecto nuevo, vista a vista, a partir de descripciones en lenguaje natural que el usuario
-escribe — sin boceto visual, sin dominio predefinido.
+It does not generate a concrete application by itself: every use of this framework starts a
+new project, view by view, from natural-language descriptions the user writes — no visual
+mockup, no predefined domain.
 
 Author: David Betancor.
 
 ## Core Rules
 
-- **Una vista a la vez.** El Orquestador nunca encadena agentes de la fase de diseño sin
-  aprobación humana explícita entre ellos (ver "Pipeline" más abajo).
-- **TDD.** Los tests se escriben en rojo antes que la implementación.
-- **Type safety.** Todo el código completamente tipado — sin `any`, sin retornos
-  implícitos, sin parámetros sin tipar.
-- **Nombres claros.** Nombres descriptivos. Sin abstracción prematura. Sin código sin usar.
-- **Cuestiona lo que no cuadra.** Señala patrones repetidos e inconsistencias potenciales.
-- **Sin mecanismos fingidos.** Si algo se documenta como funcionando, funciona de verdad.
-  Si algo está planeado pero no construido, se dice explícitamente — nunca se deja un stub
-  vacío insinuando un mecanismo que no existe.
+- **One view at a time.** The Orchestrator never chains design-phase agents without
+  explicit human approval between them (see "Pipeline" below).
+- **TDD.** Tests are written red before the implementation.
+- **Type safety.** All code fully typed — no `any`, no implicit returns, no untyped
+  parameters.
+- **Clear naming.** Descriptive names. No premature abstraction. No unused code.
+- **Question assumptions.** Flag repeated patterns and potential inconsistencies.
+- **No pretend mechanisms.** If something is documented as working, it actually works. If
+  something is planned but not built, say so explicitly — never leave an empty stub
+  implying a mechanism that doesn't exist.
 
 ## Language
 
-Todos los artefactos técnicos en inglés: código, comentarios, tipos e interfaces
-TypeScript, mensajes de error, logs, docs, config, commits de git, nombres de tests,
-nombres de schema.
+All technical artifacts in English: code, comments, TypeScript types and interfaces, error
+messages, logs, docs, config, git commits, test names, schema names.
 
-Las cadenas de cara al usuario y el vocabulario de dominio pueden usar español cuando
-reflejen el uso real del proyecto concreto que se esté generando — este framework no
-impone un dominio ni un idioma de negocio.
+User-facing strings and domain vocabulary may use the language of the concrete project
+being generated (e.g. Spanish, if that's the target app's audience) — this framework
+imposes neither a domain nor a business language. The framework's own documentation and
+internal conventions (this file, `lib/agents/`, `docs/`, `tecnologias/`) are always English.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Ejecución de agentes | Claude Code — slash commands apuntan a un role file en `lib/agents/*/*.md`; Claude Code adopta esa persona y la ejecuta directamente en sesión |
-| Coordinación | Agente **Orquestador** (`lib/agents/orchestrator/`) — punto de conversación único, decide qué agente ejecutar y gestiona los puntos de control (ver "Pipeline") |
-| Almacenamiento de artefactos | Filesystem local (`vistas/`, `src/`) — sin base de datos intermedia para el propio pipeline |
-| Base de datos de aplicación | **PostgreSQL 16**, real y viva, ya creada por el usuario — `DATABASE_URL` pendiente de configurar (ver `.env.example`) |
-| Cliente Postgres | **`Bun.SQL`** nativo — sin `pg`/node-postgres ni ORM (ver `tecnologias/tecnologia_bbdd.md`) |
+| Agent execution | Claude Code — slash commands point to a role file in `lib/agents/*/*.md`; Claude Code adopts that persona and runs it directly in-session |
+| Coordination | **Orchestrator** agent (`lib/agents/orchestrator/`) — single conversational entry point, decides which agent to run and manages checkpoints (see "Pipeline") |
+| Artifact storage | Local filesystem (`views/`, `src/`) — no intermediate database for the pipeline itself |
+| Application database | **PostgreSQL 16**, real and live, already created by the user — `DATABASE_URL` pending configuration (see `.env.example`) |
+| Postgres client | **`Bun.SQL`** native driver — no `pg`/node-postgres, no ORM (see `tecnologias/tecnologia_bbdd.md`) |
 | Backend | **Bun** + Express 5 + TypeScript |
-| Validación de artefactos del pipeline | Zod (`lib/schemas/`) |
-| Frontend | Web Components (nativos) + lit-html standalone + Tailwind CSS 3.x + TypeScript |
-| Build frontend | `bun build` — `src/frontend/src/*.ts` → `src/frontend/dist/*.js` → `<script type="module">` |
-| Tests unitarios | `bun test` (API compatible con Jest) — backend + frontend |
-| Tests e2e | Cypress — `src/frontend/cypress/e2e/` |
-| Calidad de código | SOLID (auditoría manual del agente `reviewer`) + SonarCloud (cobertura 100 % obligatoria) |
-| RAG *(planeado, no construido)* | `knowledge_base` con pgvector + embeddings, para dar contexto entre vistas — ver "RAG" más abajo |
-| CI/CD | GitHub Actions (`ci-setup` genera los workflows) |
-| Docs | MkDocs + Material for MkDocs, cuando el proyecto concreto las necesite |
+| Pipeline artifact validation | Zod (`lib/schemas/`) |
+| Frontend | Web Components (native) + standalone lit-html + Tailwind CSS 3.x + TypeScript |
+| Frontend build | `bun build` — `src/frontend/src/*.ts` → `src/frontend/dist/*.js` → `<script type="module">` |
+| Unit tests | `bun test` (Jest-compatible API) — backend + frontend |
+| E2E tests | Cypress — `src/frontend/cypress/e2e/` |
+| Code quality | SOLID (manual audit by the `reviewer` agent) + SonarCloud (100% coverage required) |
+| RAG *(planned, not built)* | `knowledge_base` with pgvector + embeddings, to give context across views — see "RAG" below |
+| CI/CD | GitHub Actions (`ci-setup` generates the workflows) |
+| Docs | MkDocs + Material for MkDocs, published to GitHub Pages |
 
 ## Pipeline
 
-Cada vista pasa por dos fases con reglas de control opuestas, coordinadas por el
-**Orquestador** (`/orchestrator`) — el usuario no invoca al resto de agentes directamente
-en el uso normal.
+Every view goes through two phases with opposite control rules, coordinated by the
+**Orchestrator** (`/orchestrator`) — the user doesn't invoke the other agents directly in
+normal use.
 
 ```
-Fase A — paso a paso, revisión humana obligatoria en cada punto
-  tú: "lee vistas/<vista>/descripcion_vista_X.md, tablas: [...]"
-    → view-designer          → ui-spec.json + functional-spec.json → revisión humana → rehaz | sigue
-    → requirement-architect   → use-cases.md + api-contracts.md (+ schema-changes.sql si aplica) → revisión humana → rehaz | sigue
-    → tdd-engineer            → tests TDD (rojo) → revisión humana → rehaz | "implementa"
+Phase A — step by step, human review required at every point
+  you: "read views/<view>/description_<view>.md, tables: [...]"
+    → view-designer          → ui-spec.json + functional-spec.json → human review → redo | continue
+    → requirement-architect   → use-cases.md + api-contracts.md (+ schema-changes.sql if needed) → human review → redo | continue
+    → tdd-engineer            → TDD tests (red) → human review → redo | "implement"
 
-Fase B — autónoma, máximo 10 ciclos completos, sin parar
-    → implementer escribe/corrige código → tests TDD
-         fail → repite implementer (no consume ciclo)
-         pass → reviewer (SOLID + SonarCloud, cobertura 100 %)
-              fail → vuelve a implementer (reinicia ciclo, +1)
+Phase B — autonomous, up to 10 full cycles, no stopping
+    → implementer writes/fixes code → TDD tests
+         fail → re-run implementer (doesn't consume a cycle)
+         pass → reviewer (SOLID + SonarCloud, 100% coverage gate)
+              fail → back to implementer (restarts the cycle, +1)
               pass → e2e-engineer (Cypress)
-                   fail → vuelve a implementer (reinicia ciclo, +1)
-                   pass → Orquestador avisa: "vista completa"
-    → tras 10 ciclos sin converger → Orquestador avisa del fallo
+                   fail → back to implementer (restarts the cycle, +1)
+                   pass → Orchestrator announces: "view complete"
+    → after 10 cycles without converging → Orchestrator reports the failure
 ```
 
-No existe boceto visual ni numeración externa de elementos (el antiguo `sketchNumber` de
-versiones previas de este framework). Cada elemento de una vista recibe un **`elementId`**
-(string, kebab-case) asignado por `view-designer` — es el identificador que atraviesa el
-resto del pipeline: `ui-spec.json → functional-spec.json → use-cases.md → tests → código`.
+There is no visual mockup and no external element numbering. Every element of a view gets
+an **`elementId`** (kebab-case string) assigned by `view-designer` — this is the identifier
+that runs through the rest of the pipeline: `ui-spec.json → functional-spec.json →
+use-cases.md → tests → code`.
 
-### Agentes
+### Agents
 
-| Agente | Responsabilidad | Input | Output |
-|--------|-----------------|-------|--------|
-| `orchestrator` | Punto de entrada único; decide qué agente ejecutar, gestiona revisión humana (Fase A) y el bucle autónomo (Fase B, máx. 10 ciclos) | Instrucción del usuario + estado de la vista | Avisos al usuario en cada punto de control |
-| `view-designer` | Diseña la UI y el comportamiento de una vista a partir de su descripción en lenguaje natural; introspecciona la BBDD real si `DATABASE_URL` está configurada | `vistas/<vista>/descripcion_vista_<vista>.md` | `vistas/<vista>/ui-spec.json` + `vistas/<vista>/functional-spec.json` |
-| `requirement-architect` | Casos de uso + contratos API + cambios incrementales de schema si la vista los necesita | `ui-spec.json` + `functional-spec.json` | `vistas/<vista>/use-cases.md` + `vistas/<vista>/api-contracts.md` (+ `schema-changes.sql`) |
-| `tdd-engineer` | Tests unitarios en rojo a partir de los criterios de aceptación | `use-cases.md` + `api-contracts.md` | `src/{backend,frontend}/tests/*.test.ts` |
-| `implementer` | Código mínimo para que los tests pasen; también corrige código en la Fase B | Tests en rojo + specs | `src/{backend,frontend}/src/` |
-| `reviewer` | Auditoría SOLID + SonarCloud (gate: cobertura 100 %) | Código + tests | `vistas/<vista>/review-report.md` |
-| `e2e-engineer` | Tests Cypress por caso de uso | `use-cases.md` + specs | `src/frontend/cypress/e2e/*.cy.ts` |
-| `ci-setup` *(on-demand)* | Workflows de GitHub Actions | `CLAUDE.md` + `package.json` | `.github/workflows/*.yml` |
-| `doc-reviewer` *(on-demand)* | Audita coherencia de toda la documentación frente al estado real del repo | Todo lo anterior | Informe (sin escritura) |
+| Agent | Responsibility | Input | Output |
+|-------|-----------------|-------|--------|
+| `orchestrator` | Single entry point; decides which agent to run, manages human review (Phase A) and the autonomous loop (Phase B, max. 10 cycles) | User instruction + view state | Notifications to the user at every checkpoint |
+| `view-designer` | Designs the UI and behavior of a view from its natural-language description; introspects the real DB if `DATABASE_URL` is configured | `views/<view>/description_<view>.md` | `views/<view>/ui-spec.json` + `views/<view>/functional-spec.json` |
+| `requirement-architect` | Use cases + API contracts + incremental schema changes if the view needs them | `ui-spec.json` + `functional-spec.json` | `views/<view>/use-cases.md` + `views/<view>/api-contracts.md` (+ `schema-changes.sql`) |
+| `tdd-engineer` | Red unit tests from the acceptance criteria | `use-cases.md` + `api-contracts.md` | `src/{backend,frontend}/tests/*.test.ts` |
+| `implementer` | Minimal code to make the tests pass; also fixes code during Phase B | Red tests + specs | `src/{backend,frontend}/src/` |
+| `reviewer` | SOLID + SonarCloud audit (gate: 100% coverage) | Code + tests | `views/<view>/review-report.md` |
+| `e2e-engineer` | Cypress tests per use case | `use-cases.md` + specs | `src/frontend/cypress/e2e/*.cy.ts` |
+| `ci-setup` *(on-demand)* | GitHub Actions workflows | `CLAUDE.md` + `package.json` | `.github/workflows/*.yml` |
+| `doc-reviewer` *(on-demand)* | Audits the consistency of all documentation | Everything above | Report (no writes) |
 
-Cada agente es un role file (`lib/agents/<agente>/<agente>.md`) que Claude Code lee y
-ejecuta directamente en sesión, disparado por su slash command
-(`.claude/commands/<agente>.md`, un puntero de una línea) o por la herramienta `Skill`. No
-hay proceso de orquestación aparte ni base de datos intermedia para el propio pipeline:
-cada agente lee sus inputs y escribe sus outputs directamente en el filesystem
-(`vistas/<vista>/`, `src/`).
+Each agent is a role file (`lib/agents/<agent>/<agent>.md`) that Claude Code reads and runs
+directly in-session, triggered by its slash command (`.claude/commands/<agent>.md`, a
+one-line pointer) or by the `Skill` tool. There is no separate orchestration process and no
+intermediate database for the pipeline itself: each agent reads its inputs and writes its
+outputs directly to the filesystem (`views/<view>/`, `src/`).
 
 ### CLI
 
 ```bash
-# Punto de entrada habitual — hablas con el Orquestador, no invocas agentes uno a uno
+# Usual entry point — you talk to the Orchestrator, not to agents one by one
 /orchestrator
 
-# Invocación manual de un agente concreto, si quieres saltarte el flujo del Orquestador
+# Manual invocation of a single agent, if you want to skip the Orchestrator's flow
 /view-designer
 /requirement-architect
 /tdd-engineer
@@ -133,52 +132,52 @@ bunx cypress run
 
 ### Zod schemas
 
-- `UISpecSchema` (`lib/schemas/ui-spec.schema.js`) — `screens[].components[]` con
+- `UISpecSchema` (`lib/schemas/ui-spec.schema.js`) — `screens[].components[]` with
   `elementId`, `type`, `props`, `states`, `interactions`.
 - `FunctionalSpecSchema` (`lib/schemas/functional-spec.schema.js`) — `appOverview`;
-  `elementSpecs[]` con `elementId`, `behavior`, `businessRules`, `dataNeeds`,
-  `acceptanceCriteria`; más `globalRules[]`.
+  `elementSpecs[]` with `elementId`, `behavior`, `businessRules`, `dataNeeds`,
+  `acceptanceCriteria`; plus `globalRules[]`.
 
-`use-cases.md`, `api-contracts.md` y `review-report.md` son Markdown libre, sin schema —
-revisados por el humano o por el siguiente agente que los lee directamente.
+`use-cases.md`, `api-contracts.md` and `review-report.md` are free-form Markdown, no
+schema — reviewed by the human or by the next agent that reads them directly.
 
-## Librería de patrones
+## Pattern library
 
-`lib/patterns/` contiene plantillas de estructura (no código ejecutable) para las formas
-más comunes entre vistas — CRUD backend, select en cascada, filtro reactivo, tabla CRUD
-con edición inline. `implementer` las consulta antes de escribir un servicio o componente
-que encaje en una de esas formas, para no reinventar la estructura vista a vista ni
-producir variantes que `reviewer` tendría que rechazar por duplicación/inconsistencia de
-diseño. Se eligió esto — plantillas fijas leídas directamente — en vez de RAG/few-shot
-sobre vistas anteriores porque las vistas del proyecto son muy distintas entre sí; lo que
-se repite entre ellas es la *forma* estructural (CRUD, cascada, filtro), no el contenido.
+`lib/patterns/` holds structural templates (not runnable code) for the shapes that repeat
+across different views — backend CRUD, cascading select, reactive filter, inline-edit CRUD
+table. `implementer` checks them before writing a service or component that fits one of
+those shapes, so it doesn't reinvent the structure view by view or produce variants that
+`reviewer` would have to reject for duplication/design inconsistency. This was chosen —
+fixed templates read directly — over RAG/few-shot from prior views because views in this
+project are meant to be very different from each other; what repeats between them is
+structural *shape* (CRUD, cascade, filter), not content.
 
-## RAG *(planeado, no construido)*
+## RAG *(planned, not built)*
 
-La idea de fondo de este framework es que el Orquestador y `view-designer` consulten una
-`knowledge_base` (PostgreSQL + pgvector, embeddings) indexando las descripciones de vista
-ya escritas, los artefactos generados (`ui-spec.json`, `functional-spec.json`,
-`use-cases.md`, `review-report.md`) y el schema real de Postgres — para dar contexto entre
-vistas (convenciones ya usadas, tablas relacionadas) sin que el usuario tenga que repetirlo
-cada vez. **Esto no existe todavía.** No hay ningún fichero en el repo insinuando lo
-contrario; se construirá como tarea propia cuando toque.
+The underlying idea of this framework is that the Orchestrator and `view-designer` should
+be able to query a `knowledge_base` (PostgreSQL + pgvector, embeddings) indexing the view
+descriptions already written, the generated artifacts (`ui-spec.json`,
+`functional-spec.json`, `use-cases.md`, `review-report.md`), and the real Postgres schema —
+to give context across views (conventions already used, related tables) without the user
+having to repeat itself every time. **This doesn't exist yet.** No file in the repo implies
+otherwise; it will be built as its own task when it's time.
 
 ## Frontend: Web Components
 
-Un fichero por componente. Shadow DOM siempre abierto. Render solo con lit-html. Nunca
-`innerHTML`. TypeScript compilado con `bun build` — fuente en `src/frontend/src/`, salida
-en `src/frontend/dist/`.
+One file per component. Shadow DOM always open. Render with lit-html only. Never
+`innerHTML`. TypeScript compiled with `bun build` — source in `src/frontend/src/`, output
+in `src/frontend/dist/`.
 
-**La restricción dura es "sin Shadow DOM anidado", no "sin código compartido".** Nunca
-compongas una vista a partir de varios custom elements anidados dentro del Shadow DOM de
-otro — el atributo `data-element-id="<elementId>"` debe estar en el elemento nativo para
-que funcionen `.type()`/`.click()` de Cypress y `shadowRoot.querySelector()` en tests
-unitarios, y un segundo shadow root anidado rompe ambos. Compartir comportamiento entre
-vistas casi idénticas vía funciones/clases planas o una **clase base abstracta que extiende
-`HTMLElement`** es correcto y se anima una vez la duplicación entre vistas es real —
-sigue habiendo un único custom element registrado, un único Shadow DOM, por vista.
+**The hard constraint is "no nested Shadow DOM", not "no shared code".** Never compose a
+view out of several custom elements nested inside another one's Shadow DOM — the
+`data-element-id="<elementId>"` attribute must sit on the native element for Cypress's
+`.type()`/`.click()` and for `shadowRoot.querySelector()` in unit tests to work, and a
+second nested shadow root breaks both. Sharing behavior across near-identical views via
+plain functions/classes, or an **abstract base class extending `HTMLElement`**, is fine and
+encouraged once duplication between views is real — there is still exactly one registered
+custom element, one Shadow DOM, per view.
 
-### Esqueleto de componente
+### Component skeleton
 
 ```ts
 // example-button.ts
@@ -224,54 +223,54 @@ customElements.define('example-button', ExampleButton);
 
 | Rule | Detail |
 |------|--------|
-| Nombre | prefijo propio del proyecto concreto (p. ej. `app-*`); registrado con `customElements.define` |
-| Shadow DOM | `this.attachShadow({ mode: 'open' })` en `connectedCallback` |
-| Render | `lit-html` únicamente — nunca `innerHTML` |
-| Bindings | `.prop=` · `@event=` · `?attr=` · `${items.map(...)}` (listas simples) · `${repeat(...)}` *(importar `lit-html/directives/repeat.js` — listas grandes con key tracking)* |
+| Name | prefix specific to the concrete project (e.g. `app-*`); registered with `customElements.define` |
+| Shadow DOM | `this.attachShadow({ mode: 'open' })` in `connectedCallback` |
+| Rendering | `lit-html` only — never `innerHTML` |
+| Bindings | `.prop=` · `@event=` · `?attr=` · `${items.map(...)}` (simple lists) · `${repeat(...)}` *(import `lit-html/directives/repeat.js` — large lists with key tracking)* |
 | Lifecycle | `connectedCallback`: setup + render + subscribe. `disconnectedCallback`: flush disposables |
-| Disposables | Cada listener/observer/interval → push de su función de limpieza a `this._disposables` |
-| Events | `new CustomEvent('app:verbo-sustantivo', { bubbles:true, composed:true, detail:{} })` |
-| Modules | `export class` por fichero; cargado vía `<script type="module">` |
+| Disposables | Every listener/observer/interval → push its cleanup function into `this._disposables` |
+| Events | `new CustomEvent('app:verb-noun', { bubbles:true, composed:true, detail:{} })` |
+| Modules | `export class` per file; loaded via `<script type="module">` |
 
 ### Naming
 
-| Qué | Patrón | Ejemplo |
-|-----|--------|---------|
-| Fichero | `kebab-case.ts` | `example-button.ts` |
-| Clase | `PascalCase` | `ExampleButton` |
-| Elemento | prefijo propio del proyecto | `app-example-button` |
-| Evento | `app:verbo-sustantivo` | `app:item-selected` |
+| What | Pattern | Example |
+|------|---------|---------|
+| File | `kebab-case.ts` | `example-button.ts` |
+| Class | `PascalCase` | `ExampleButton` |
+| Element | project-specific prefix | `app-example-button` |
+| Event | `app:verb-noun` | `app:item-selected` |
 
 ## Repository Structure
 
 ```
-vistas/
-  <nombre-vista>/
-    descripcion_vista_<nombre>.md   # input del usuario
-    ui-spec.json                    # salida view-designer
-    functional-spec.json            # salida view-designer
-    use-cases.md                    # salida requirement-architect
-    api-contracts.md                # salida requirement-architect
-    schema-changes.sql              # salida requirement-architect (solo si la vista lo necesita)
-    review-report.md                # salida reviewer (SOLID + Sonar)
+views/
+  <view-name>/
+    description_<view-name>.md      # user input
+    ui-spec.json                    # view-designer output
+    functional-spec.json            # view-designer output
+    use-cases.md                    # requirement-architect output
+    api-contracts.md                # requirement-architect output
+    schema-changes.sql              # requirement-architect output (only if the view needs it)
+    review-report.md                # reviewer output (SOLID + Sonar)
 
 src/
   backend/
-    src/                            # salida implementer — Bun + Express + TypeScript
-    tests/                          # salida tdd-engineer
+    src/                            # implementer output — Bun + Express + TypeScript
+    tests/                          # tdd-engineer output
   frontend/
-    src/                            # salida implementer — Web Components + TypeScript
-    dist/                           # salida de bun build
-    tests/                          # salida tdd-engineer
+    src/                            # implementer output — Web Components + TypeScript
+    dist/                           # bun build output
+    tests/                          # tdd-engineer output
     cypress/
-      e2e/                          # salida e2e-engineer
+      e2e/                          # e2e-engineer output
 
 lib/
-  agents/          # un subdirectorio por agente — solo .md, sin script standalone
+  agents/          # one subdirectory per agent — .md only, no standalone script
   schemas/         # ui-spec.schema.js, functional-spec.schema.js (Zod, elementId)
-  patterns/        # plantillas de estructura reutilizables — ver "Librería de patrones"
+  patterns/        # reusable structural templates — see "Pattern library"
 
-.claude/commands/  # punteros de una línea a lib/agents/*/*.md
-tecnologias/       # decisiones de stack detalladas por capa (bbdd, code, front, qa, ux)
-tests/             # tests del propio framework (schemas.test.js)
+.claude/commands/  # one-line pointers to lib/agents/*/*.md
+tecnologias/       # detailed stack decisions per layer (bbdd, code, front, qa, ux)
+tests/             # tests for the framework itself (schemas.test.js)
 ```

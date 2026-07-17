@@ -1,68 +1,66 @@
-# Tecnologías de UX / diseño
+# UX / design technologies
 
-Fuente: `src/frontend/src/styles/`, `vistas/`, `lib/agents/view-designer/`.
+Source: `src/frontend/src/styles/`, `views/`, `lib/agents/view-designer/`.
 
-## Sistema de diseño
+## Design system
 
-- **Tailwind CSS 3.x** como único lenguaje de estilos — sin CSS-in-JS, sin librería de
-  componentes UI de terceros (no Material, no Bootstrap, no shadcn). Paleta neutra
-  profesional acordada con el usuario del proyecto concreto que se esté generando —
-  extendida en `tailwind.config.js`.
-- **Fuente única de verdad**: `classesFor(type, variant, size)`
-  (`src/styles/classes-for.ts`) — tabla `type × variant × size → clases Tailwind`. Ningún
-  componente contiene lógica `if variant === '...'` propia; todos llaman a esta función.
-  Decisión tomada explícitamente para evitar duplicación de código (Sonar penaliza la
-  duplicación, ver `tecnologia_qa.md`).
-- Vocabulario de `variant` cerrado y reutilizado del propio schema de especificación UI
-  (`props.variant: primary | secondary | danger | ghost | link` en
-  `lib/schemas/ui-spec.schema.js`) — no se inventan valores nuevos por vista.
-- Escala de tamaños (`size`): `sm` / `md` (por defecto) / `lg`, aplicada como
-  padding + tamaño de texto.
+- **Tailwind CSS 3.x** as the only styling language — no CSS-in-JS, no third-party UI
+  component library (no Material, no Bootstrap, no shadcn). A neutral, professional palette
+  agreed with the user of the concrete project being generated — extended in
+  `tailwind.config.js`.
+- **Single source of truth**: `classesFor(type, variant, size)`
+  (`src/frontend/src/styles/classes-for.ts`) — a `type × variant × size → Tailwind classes`
+  table. No component contains its own `if variant === '...'` logic; they all call this
+  function. Chosen explicitly to avoid code duplication (Sonar penalizes duplication, see
+  `tecnologia_qa.md`).
+- The `variant` vocabulary is closed and reused straight from the UI spec schema itself
+  (`props.variant: primary | secondary | danger | ghost | link` in
+  `lib/schemas/ui-spec.schema.js`) — no new values invented per view.
+- Size scale (`size`): `sm` / `md` (default) / `lg`, applied as padding + text size.
 
-## Entrega del CSS al Shadow DOM
+## Delivering CSS to the Shadow DOM
 
-- Como cada componente usa Shadow DOM abierto, un `<link>`/`<style>` global
-  en `index.html` **no** llega a los shadow roots — las clases Tailwind no tendrían efecto
-  visual sin un paso adicional.
-- Solución: **`adoptedStyleSheets`** (API nativa de Shadow DOM) —
-  `src/styles/shadow-styles.ts` construye un único `CSSStyleSheet` de forma perezosa
-  (`fetch('/dist/tailwind.css')` + `replaceSync`), compartido por instancia entre todos
-  los componentes, y lo adopta en cada shadow root vía `attachSharedStyles(shadowRoot)`.
-  Evita duplicar/parsear el CSS por instancia.
+- Since every component uses an open Shadow DOM, a global `<link>`/`<style>` in
+  `index.html` **doesn't** reach the shadow roots — Tailwind classes would have no visual
+  effect without an extra step.
+- Solution: **`adoptedStyleSheets`** (native Shadow DOM API) —
+  `src/frontend/src/styles/shadow-styles.ts` lazily builds a single `CSSStyleSheet`
+  (`fetch('/dist/tailwind.css')` + `replaceSync`), shared across every component instance,
+  and adopts it into each shadow root via `attachSharedStyles(shadowRoot)`. Avoids
+  duplicating/parsing the CSS per instance.
 
-## Descripción de vista → especificación UI (proceso, no herramienta)
+## View description → UI specification (a process, not a tool)
 
-- **No hay boceto visual** (HTML anotado, Figma, etc.) en este proyecto. La única fuente
-  de verdad de "qué existe en una vista" es `vistas/<vista>/descripcion_vista_<vista>.md`
-  — texto libre escrito por el usuario: qué quiere el "cliente" de esa vista, qué datos
-  maneja, qué tablas de la base de datos están implicadas.
-- El agente **`view-designer`** (`lib/agents/view-designer/view-designer.md`) diseña la UI
-  a partir de esa descripción: decide componentes, estados e interacciones, y asigna a
-  cada uno un `elementId` propio (no hay numeración externa que seguir, como sí la había
-  con el antiguo `sketchNumber` del boceto). El resultado es `ui-spec.json` +
-  `functional-spec.json` por vista.
-- Nada aparece en fases posteriores (casos de uso, tests, código) sin haber sido
-  diseñado primero por `view-designer` con su propio `elementId`.
+- **There is no visual mockup** (annotated HTML, Figma, etc.) in this project. The only
+  source of truth for "what exists in a view" is
+  `views/<view>/description_<view>.md` — free text written by the user: what the "client"
+  wants from that view, what data it handles, which database tables are involved.
+- The **`view-designer`** agent (`lib/agents/view-designer/view-designer.md`) designs the
+  UI from that description: it decides components, states and interactions, and assigns
+  each one its own `elementId` (there's no external numbering to follow, unlike the old
+  mockup's `sketchNumber`). The result is `ui-spec.json` + `functional-spec.json` per view.
+- Nothing shows up in later phases (use cases, tests, code) without first being designed by
+  `view-designer` with its own `elementId`.
 
-## Patrones de interacción de UX reutilizables
+## Reusable interaction patterns
 
-- **Filtros reactivos**: cuando una vista lista datos filtrables, los filtros deben aplicar
-  mientras el usuario escribe (regla explícita de `CLAUDE.md`) — implementado en
-  `controllers/` vía funciones de cascada de consultas, no debounce de terceros.
-- **Import masivo**: cuando una vista necesita alta masiva de datos, usa un componente
-  `file-upload` con su propia variante Tailwind (`file:mr-3 file:rounded...`), integrado
-  en el mismo sistema `classesFor`.
-- **Accesibilidad de estado**: la variante `danger` se reutiliza de forma consistente en
-  inputs, botones y párrafos para señalar error/validación fallida en todo el sistema, en
-  vez de un color distinto por componente.
-- **Matrices de selección** (ítem × nivel, celda × celda): cuando una vista requiera que el
-  usuario seleccione un valor por celda de una matriz, cada celda es un estado
-  independiente que debe poder validarse visualmente sin ambigüedad (usa `variant="danger"`
-  para el estado de validación fallida, no un estilo ad-hoc).
+- **Reactive filters**: when a view lists filterable data, filters must apply as the user
+  types (explicit `CLAUDE.md` rule) — implemented in `controllers/` via query-cascade
+  functions, not third-party debounce.
+- **Bulk import**: when a view needs bulk data entry, use a `file-upload` component with
+  its own Tailwind variant (`file:mr-3 file:rounded...`), integrated into the same
+  `classesFor` system.
+- **State accessibility**: the `danger` variant is reused consistently across inputs,
+  buttons and paragraphs to signal errors/failed validation throughout the system, instead
+  of a different color per component.
+- **Selection matrices** (item × level, cell by cell): when a view requires the user to
+  pick a value per matrix cell, each cell is an independent state that must be validatable
+  visually without ambiguity (use `variant="danger"` for the failed-validation state, not
+  an ad-hoc style).
 
-## Herramientas de diseño
+## Design tools
 
-No hay herramienta de diseño externa (Figma, Sketch...) en el flujo: la descripción en
-markdown de cada vista **es** el artefacto de entrada, editada directamente y versionada
-en git — decisión consciente para que la especificación de cada vista sea texto simple,
-legible y versionable sin herramientas externas.
+There is no external design tool (Figma, Sketch...) in the flow: each view's Markdown
+description **is** the input artifact, edited directly and versioned in git — a deliberate
+decision so that a view's specification is plain, readable, versionable text with no
+external tooling required.

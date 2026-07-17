@@ -1,9 +1,9 @@
-# Patrón — Tabla CRUD (frontend)
+# Pattern — CRUD table (frontend)
 
-Cuándo aplica: una vista lista filas de una entidad con edición inline y borrado
-(proyecto: "edición inline en tablas, nunca modal" — ver `CLAUDE.md`).
+When it applies: a view lists an entity's rows with inline editing and deletion (project
+rule: "inline editing in tables, never a modal" — see `CLAUDE.md`).
 
-## Esqueleto de componente
+## Component skeleton
 
 ```ts
 // <entity>-table.ts
@@ -13,7 +13,7 @@ import { attachSharedStyles } from '../styles/shadow-styles';
 
 interface Row {
   id: string;
-  // ...campos reales de la vista
+  // ...the view's real fields
 }
 
 export class EntityTable extends HTMLElement {
@@ -51,8 +51,9 @@ export class EntityTable extends HTMLElement {
   }
 
   private _requestDelete(id: string): void {
-    // el componente PIDE el borrado, no decide si procede — el service comprueba
-    // dependencias (ver "Patrón de borrado bloqueado" más abajo) y responde con éxito o motivo
+    // the component REQUESTS the deletion, it doesn't decide whether it's allowed — the
+    // service checks dependencies (see "Dependency-blocked deletion" below) and responds
+    // with success or a reason
     this.dispatchEvent(new CustomEvent('app:row-delete-requested', {
       bubbles: true, composed: true, detail: { id },
     }));
@@ -73,29 +74,29 @@ export class EntityTable extends HTMLElement {
   private _renderReadRow(row: Row) {
     return html`
       <tr data-element-id="${this.getAttribute('data-element-id')}-row-${row.id}">
-        <td>${/* campos de solo lectura */ ''}</td>
+        <td>${/* read-only fields */ ''}</td>
         <td>
           <button class="${classesFor('button', 'ghost', 'sm')}"
-                  @click=${(): void => this._startEdit(row.id)}>Editar</button>
+                  @click=${(): void => this._startEdit(row.id)}>Edit</button>
           <button class="${classesFor('button', 'danger', 'sm')}"
-                  @click=${(): void => this._requestDelete(row.id)}>Borrar</button>
+                  @click=${(): void => this._requestDelete(row.id)}>Delete</button>
         </td>
       </tr>
     `;
   }
 
   private _renderEditRow(row: Row) {
-    // inputs inline vinculados a los campos reales de la vista, sin modal
+    // inline inputs bound to the view's real fields, no modal
     return html`<tr>${/* ... */''}</tr>`;
   }
 }
 customElements.define('entity-table', EntityTable);
 ```
 
-## Patrón de borrado bloqueado por dependencias
+## Dependency-blocked deletion pattern
 
-El componente **pide** el borrado (evento `app:row-delete-requested`); quien decide si
-procede es el `service` del backend, no el frontend:
+The component **requests** the deletion (`app:row-delete-requested` event); the backend
+`service` decides whether it's allowed, not the frontend:
 
 ```ts
 // services/<entity>.service.ts
@@ -108,14 +109,14 @@ async delete(id: string): Promise<void> {
 }
 ```
 
-El listener del evento en la vista padre traduce el error `HAS_DEPENDENTS` en el mensaje
-visible al usuario — el `entity-table` en sí no conoce la regla de negocio de por qué un
-borrado puede fallar.
+The event listener in the parent view translates the `HAS_DEPENDENTS` error into the
+message shown to the user — the `entity-table` itself doesn't know the business rule for
+why a deletion might fail.
 
-## Reglas
+## Rules
 
-- Edición inline siempre, nunca modal, para tablas de este patrón.
-- El componente nunca decide "puedo borrar esto" — ese juicio vive en el service.
-- `data-element-id` en cada fila/control interactivo, derivado del `elementId` de
-  `ui-spec.json` + el `id` de la fila real, para que Cypress pueda apuntar a filas
-  concretas sin depender del orden.
+- Always inline editing, never a modal, for tables that follow this pattern.
+- The component never decides "can I delete this" — that judgment lives in the service.
+- `data-element-id` on every interactive row/control, derived from the `elementId` in
+  `ui-spec.json` + the row's real `id`, so Cypress can target specific rows without relying
+  on order.

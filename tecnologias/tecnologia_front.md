@@ -1,63 +1,63 @@
-# Tecnologías de frontend
+# Frontend technologies
 
-Fuente: `src/frontend/`, `CLAUDE.md`.
+Source: `src/frontend/`, `CLAUDE.md`.
 
 ## Base
 
-- **Web Components nativos** (`customElements.define`, `HTMLElement`) — sin framework
-  (no React/Vue/Svelte/Angular). Un archivo TypeScript por componente, con un prefijo
-  propio del proyecto (p. ej. `app-*`).
-- **Shadow DOM siempre abierto** (`this.attachShadow({ mode: 'open' })` en
-  `connectedCallback`). Regla dura del proyecto: **nunca** anidar un custom element dentro
-  del Shadow DOM de otro — cada pantalla es un único custom element con un único
-  Shadow Root, para que `data-element-id="N"` sea alcanzable por `shadowRoot.querySelector()`
-  (tests unitarios) y por `.type()`/`.click()` de Cypress.
-- **lit-html** (standalone, `^3.3.3`) como único motor de render — `html` + `render()`.
-  Nunca `innerHTML`. Bindings: `.prop=`, `@event=`, `?attr=`, `${items.map(...)}` para
-  listas simples, `${repeat(...)}` (`lit-html/directives/repeat.js`) para listas grandes
-  con *key tracking*.
-- **TypeScript** estricto (`strict: true` en `tsconfig.json`), sin `any` ni retornos
-  implícitos (regla de `CLAUDE.md`).
+- **Native Web Components** (`customElements.define`, `HTMLElement`) — no framework (no
+  React/Vue/Svelte/Angular). One TypeScript file per component, with a prefix specific to
+  the concrete project (e.g. `app-*`).
+- **Shadow DOM always open** (`this.attachShadow({ mode: 'open' })` in
+  `connectedCallback`). Hard project rule: **never** nest a custom element inside another
+  one's Shadow DOM — every screen is a single custom element with a single Shadow Root, so
+  `data-element-id="N"` is reachable via `shadowRoot.querySelector()` (unit tests) and via
+  Cypress's `.type()`/`.click()`.
+- **lit-html** (standalone, `^3.3.3`) as the only rendering engine — `html` + `render()`.
+  Never `innerHTML`. Bindings: `.prop=`, `@event=`, `?attr=`, `${items.map(...)}` for
+  simple lists, `${repeat(...)}` (`lit-html/directives/repeat.js`) for large lists with key
+  tracking.
+- **Strict TypeScript** (`strict: true` in `tsconfig.json`), no `any` or implicit returns
+  (`CLAUDE.md` rule).
 
 ## Build
 
-- **`bun build`** compila `src/frontend/src/index.ts` →
-  `dist/*.js` (`--target browser`), cargado en el HTML vía `<script type="module">`.
-- **Tailwind CSS 3.x** compilado aparte con `bunx tailwindcss` (`build:css` en
-  `package.json`) → `dist/tailwind.css`. No pasa por `bun build`; ver
-  `tecnologia_ux.md` para cómo se inyecta en cada Shadow DOM.
-- No hay bundler adicional (Webpack/Vite/esbuild-standalone): `bun build` es el único paso.
+- **`bun build`** compiles `src/frontend/src/index.ts` → `src/frontend/dist/*.js`
+  (`--target browser`), loaded in the HTML via `<script type="module">`.
+- **Tailwind CSS 3.x** compiled separately with `bunx tailwindcss` (`build:css` in
+  `package.json`) → `src/frontend/dist/tailwind.css`. Doesn't go through `bun build`; see
+  `tecnologia_ux.md` for how it's injected into each Shadow DOM.
+- No additional bundler (Webpack/Vite/standalone esbuild): `bun build` is the only step.
 
-## Estructura interna (`src/`)
+## Internal structure (`src/frontend/src/`)
 
-- `components/` — un componente por vista del proyecto (una vista = una entrada en
-  `vistas/`, ver `CLAUDE.md`).
-- `controllers/` — lógica de UI extraída de los componentes (cascadas de filtros
-  reactivos, flujos CRUD compartidos: `create-row-flow.ts`, `edit-row-flow.ts`,
-  `delete-row-flow.ts`, `form-cascade-engine.ts`) — patrón explícito para compartir
-  comportamiento **sin** anidar Shadow DOM (funciones/clases planas, no custom elements).
-- `services/` — un cliente HTTP por entidad (`auth.service.ts`, `student.service.ts`,
-  `rubric.service.ts`...) que llama a la API Express (`/api/*`) con `fetch`.
-- `styles/` — `classes-for.ts` (mapeo `type × variant × size → clases Tailwind`,
-  fuente única de verdad del sistema de diseño), `shadow-styles.ts`
-  (`adoptedStyleSheets`), `tailwind.css` (entrada de Tailwind).
-- `utils/` — utilidades transversales.
-- `router.ts` — enrutador SPA propio, sin librería externa: mapea `path → render(outlet)`,
-  escucha `popstate`, expone `navigate()`. El backend sirve el mismo `index.html` para
-  cualquier ruta no-API (fallback SPA en `app.ts`).
+- `components/` — one component per project view (a view = an entry under `views/`, see
+  `CLAUDE.md`).
+- `controllers/` — UI logic extracted out of the components (reactive filter cascades,
+  shared CRUD flows: `create-row-flow.ts`, `edit-row-flow.ts`, `delete-row-flow.ts`,
+  `form-cascade-engine.ts`) — an explicit pattern for sharing behavior **without** nesting
+  Shadow DOM (plain functions/classes, not custom elements).
+- `services/` — one HTTP client per entity (`auth.service.ts`, `student.service.ts`,
+  `entity.service.ts`...) calling the Express API (`/api/*`) with `fetch`.
+- `styles/` — `classes-for.ts` (mapping `type × variant × size → Tailwind classes`, the
+  single source of truth for the design system), `shadow-styles.ts`
+  (`adoptedStyleSheets`), `tailwind.css` (Tailwind's entry point).
+- `utils/` — cross-cutting utilities.
+- `router.ts` — a self-contained SPA router, no external library: maps `path →
+  render(outlet)`, listens to `popstate`, exposes `navigate()`. The backend serves the same
+  `index.html` for any non-API route (SPA fallback in `app.ts`).
 
-## Comunicación con el backend
+## Communication with the backend
 
-- `fetch` nativo contra la API Express (`/api/...`), cookies de sesión (`session_id`)
-  enviadas automáticamente (`credentials` implícito same-origin).
-- Eventos de dominio propios sobre el DOM: `new CustomEvent('app:verbo-sustantivo',
-  { bubbles: true, composed: true, detail: {...} })` — `composed: true` es necesario para
-  que el evento atraviese la frontera del Shadow DOM.
+- Native `fetch` against the Express API (`/api/...`), session cookies (`session_id`) sent
+  automatically (implicit same-origin `credentials`).
+- Domain events of our own on the DOM: `new CustomEvent('app:verb-noun', { bubbles: true,
+  composed: true, detail: {...} })` — `composed: true` is required for the event to cross
+  the Shadow DOM boundary.
 
-## Testing frontend (ver también `tecnologia_qa.md`)
+## Frontend testing (see also `tecnologia_qa.md`)
 
-- Unit tests de componentes con **`bun test`** (API compatible con Jest) +
-  **`@happy-dom/global-registrator`** para simular DOM/Shadow DOM en el runtime de Bun
-  sin navegador real.
-- E2E con **Cypress** (`^15.18.1`), `includeShadowDom: true` en `cypress.config.ts` —
-  imprescindible porque `cy.get()` no atraviesa shadow roots por defecto.
+- Component unit tests with **`bun test`** (Jest-compatible API) +
+  **`@happy-dom/global-registrator`** to simulate the DOM/Shadow DOM in Bun's runtime
+  without a real browser.
+- E2E with **Cypress** (`^15.18.1`), `includeShadowDom: true` in `cypress.config.ts` —
+  required because `cy.get()` doesn't cross shadow roots by default.

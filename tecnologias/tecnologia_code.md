@@ -1,68 +1,66 @@
-# Tecnologías de código (backend, lenguaje, arquitectura, pipeline)
+# Code technologies (backend, language, architecture, pipeline)
 
-Fuente: `package.json`, `src/backend/`, `lib/`, `CLAUDE.md`.
+Source: `package.json`, `src/backend/`, `lib/`, `CLAUDE.md`.
 
-## Lenguaje y runtime
+## Language and runtime
 
-- **TypeScript** (compilador `^6.0.3`) en modo `strict` para todo el código de producción
-  (backend + frontend + `lib/`). Regla de `CLAUDE.md`: sin `any`, sin retornos implícitos,
-  sin parámetros sin tipar.
-- **Bun** como runtime único — no Node.js en producción. Bun cubre: ejecución del
-  servidor, test runner, empaquetado (`bun build`), gestor de paquetes (`bun.lock`),
-  cliente SQL nativo (`Bun.SQL`) y hashing de contraseñas (`Bun.password`).
-- Módulos ES nativos (`"type": "module"` en `package.json`).
+- **TypeScript** (compiler `^6.0.3`) in `strict` mode for all production code (backend +
+  frontend + `lib/`). `CLAUDE.md` rule: no `any`, no implicit returns, no untyped
+  parameters.
+- **Bun** as the only runtime — no Node.js in production. Bun covers: running the server,
+  the test runner, bundling (`bun build`), the package manager (`bun.lock`), the native SQL
+  client (`Bun.SQL`), and password hashing (`Bun.password`).
+- Native ES modules (`"type": "module"` in `package.json`).
 
 ## Backend
 
-- **Express `^5.2.1`** — enrutador HTTP. Express 5 reenvía automáticamente las excepciones
-  de handlers `async` al middleware de error global (`app.ts`), sin necesitar `try/catch`
-  manual en cada ruta.
-- **`cookie-parser`** — sesión vía cookie `session_id` (no JWT, no `express-session`).
-- Un router Express por entidad en `src/routes/` + `multipart.ts` para subida de ficheros
-  (cuando una vista lo necesite) + `error.ts` (mapeo centralizado de códigos de error de
-  dominio → status HTTP, tabla `STATUS_MAP`).
-- **Arquitectura por capas**: `routes/` (HTTP) → `services/` (lógica de negocio) →
-  `repositories/` (acceso a datos, interfaz + implementación intercambiable — ver
-  `tecnologia_bbdd.md`). Composition root único en `app.ts` (Dependency Inversion).
-- **`pdfkit`** — disponible para generación de PDF real cuando una vista lo requiera.
-- **`yaml`** — parseo de datos importados en formato YAML.
-- Errores de dominio como clases con `code` (string) + `role` opcional, mapeados
-  centralizadamente a status HTTP (400/401/403/404/409/423/500) en `routes/error.ts` —
-  ningún handler decide el status HTTP directamente.
+- **Express `^5.2.1`** — HTTP router. Express 5 automatically forwards exceptions from
+  `async` handlers to the global error middleware (`app.ts`), no manual `try/catch` needed
+  in every route.
+- **`cookie-parser`** — session via a `session_id` cookie (no JWT, no `express-session`).
+- One Express router per entity in `src/backend/src/routes/` + `multipart.ts` for file
+  uploads (when a view needs them) + `error.ts` (centralized mapping of domain error codes
+  → HTTP status, `STATUS_MAP` table).
+- **Layered architecture**: `routes/` (HTTP) → `services/` (business logic) →
+  `repositories/` (data access, interface + swappable implementation — see
+  `tecnologia_bbdd.md`). Single composition root in `app.ts` (Dependency Inversion).
+- **`pdfkit`** — available for real PDF generation when a view requires it.
+- **`yaml`** — parsing YAML-imported data.
+- Domain errors as classes with a `code` (string) + optional `role`, centrally mapped to
+  HTTP status (400/401/403/404/409/423/500) in `routes/error.ts` — no handler decides the
+  HTTP status directly.
 
-## Validación
+## Validation
 
-- **Zod** — usado para validar los artefactos JSON del pipeline de agentes
-  (`lib/schemas/*.schema.js`: `UISpecSchema`, `FunctionalSpecSchema`). **No** se usa Zod
-  para validar los payloads HTTP de la API en runtime — la validación de entrada ahí es
-  manual (comprobaciones explícitas en services/routes).
+- **Zod** — used to validate the agent pipeline's JSON artifacts (`lib/schemas/*.schema.js`:
+  `UISpecSchema`, `FunctionalSpecSchema`). Zod is **not** used to validate HTTP payloads at
+  runtime — input validation there is manual (explicit checks in services/routes).
 
-## Pipeline de generación dirigido por agentes (Claude Code)
+## Agent-driven generation pipeline (Claude Code)
 
-- El **Orquestador** (`lib/agents/orchestrator/orchestrator.md`) es el punto de entrada
-  conversacional único: decide qué agente ejecutar a continuación, gestiona la revisión
-  humana en la fase de diseño y el bucle autónomo en la fase de construcción.
-- Cada agente subordinado es un **rol en Markdown** (`lib/agents/<agente>/<agente>.md`)
-  que Claude Code lee y ejecuta directamente en sesión — sin proceso de orquestación
-  aparte ni base de datos intermedia; cada agente lee/escribe directamente en el
-  filesystem del repositorio (`vistas/<vista>/`, `src/{backend,frontend}/`).
-- Entrada vía **slash commands** (`.claude/commands/*.md`, punteros de una línea al rol) o
-  la herramienta `Skill`.
-- Ningún agente tiene hoy un script `.js` standalone que llame a la API de Anthropic por su
-  cuenta — todos, incluido el Orquestador, se ejecutan como rol Markdown dentro de la
-  sesión de Claude Code.
-- `lib/tools/rag-client.js` no existe todavía: la `knowledge_base` (pgvector + embeddings)
-  está diseñada en la conversación de arranque del proyecto pero pendiente de
-  construcción — se documentará aquí cuando exista código real, no antes.
-- `cli/commands/commit.md` — el único fichero que queda de un CLI propio previo; es el
-  prompt del skill `/commit`, no código JS.
+- The **Orchestrator** (`lib/agents/orchestrator/orchestrator.md`) is the single
+  conversational entry point: it decides which agent to run next, manages human review
+  during the design phase, and the autonomous loop during the build phase.
+- Every subordinate agent is a **Markdown role** (`lib/agents/<agent>/<agent>.md`) that
+  Claude Code reads and runs directly in-session — no separate orchestration process, no
+  intermediate database; each agent reads/writes directly to the repository's filesystem
+  (`views/<view>/`, `src/{backend,frontend}/`).
+- Entry via **slash commands** (`.claude/commands/*.md`, one-line pointers to the role) or
+  the `Skill` tool.
+- No agent today has a standalone `.js` script that calls the Anthropic API on its own —
+  all of them, including the Orchestrator, run as a Markdown role inside a Claude Code
+  session.
+- `lib/tools/rag-client.js` doesn't exist yet: the `knowledge_base` (pgvector + embeddings)
+  was designed during the project's kickoff conversation but is pending to be built — it
+  will be documented here once real code exists, not before.
+- `cli/commands/commit.md` — the only file left from a previous standalone CLI; it's the
+  prompt for the `/commit` skill, not JS code.
 
-## Convenciones de código
+## Code conventions
 
-- Nomenclatura: `kebab-case.ts` para ficheros, `PascalCase` para clases, eventos de dominio
-  `app:verbo-sustantivo`.
-- Principios **SOLID** obligatorios para todo el código generado, verificados por
-  `reviewer`.
-- Idioma: todo el código, tipos, nombres, comentarios, mensajes de error, logs y commits
-  en **inglés**; el vocabulario de dominio y strings de UI pueden estar en español cuando
-  reflejan uso real del proyecto concreto que se esté generando.
+- Naming: `kebab-case.ts` for files, `PascalCase` for classes, domain events as
+  `app:verb-noun`.
+- **SOLID** principles are mandatory for all generated code, verified by `reviewer`.
+- Language: all code, types, names, comments, error messages, logs and commits in
+  **English**; domain vocabulary and UI strings may use the concrete project's own
+  language when they reflect real usage.
