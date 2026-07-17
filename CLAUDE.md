@@ -35,10 +35,9 @@ messages, logs, docs, config, git commits, test names, schema names.
 
 User-facing strings and domain vocabulary may use the language of the concrete project
 being generated (e.g. Spanish, if that's the target app's audience) — this framework
-imposes neither a domain nor a business language. Everything else in this repository —
-including `.claude/commands/`, `cli/commands/`, `lib/patterns/`, and `README.md`, not just
-this file, `lib/agents/`, `docs/` and `tecnologias/` — is always English. If it isn't a
-generated app's own view content, it's English.
+imposes neither a domain nor a business language. Everything else in this repository is
+always English, with no exceptions carved out by location: this file, agent roles, slash
+commands, patterns, docs, tech-decision notes, and config.
 
 ## Tech Stack
 
