@@ -1,7 +1,7 @@
-site_name: PYTO RAG Base Genera Proyectos
+site_name: PYTO Base Para Generar Proyectos
 site_description: Generic RAG-driven agent pipeline for generating web applications view by view
-repo_url: https://github.com/dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS
-repo_name: dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS
+repo_url: https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS
+repo_name: dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS
 
 theme:
   name: material

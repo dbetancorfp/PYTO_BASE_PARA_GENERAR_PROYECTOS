@@ -20,11 +20,11 @@
 | Docs | MkDocs + Material for MkDocs → GitHub Pages |
 
 Detalle completo por capa en `tecnologias/` (raíz del repo):
-[`tecnologia_bbdd.md`](https://github.com/dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS/blob/main/tecnologias/tecnologia_bbdd.md),
-[`tecnologia_code.md`](https://github.com/dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS/blob/main/tecnologias/tecnologia_code.md),
-[`tecnologia_front.md`](https://github.com/dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS/blob/main/tecnologias/tecnologia_front.md),
-[`tecnologia_qa.md`](https://github.com/dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS/blob/main/tecnologias/tecnologia_qa.md),
-[`tecnologia_ux.md`](https://github.com/dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS/blob/main/tecnologias/tecnologia_ux.md).
+[`tecnologia_bbdd.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_bbdd.md),
+[`tecnologia_code.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_code.md),
+[`tecnologia_front.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_front.md),
+[`tecnologia_qa.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_qa.md),
+[`tecnologia_ux.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/tecnologias/tecnologia_ux.md).
 
 ## Repository structure
 
@@ -79,5 +79,5 @@ estar en el elemento nativo para que funcionen los selectores de Cypress y de lo
 unitarios, y un segundo shadow root anidado rompe ambos.
 
 Ver la sección "Frontend: Web Components" de
-[`CLAUDE.md`](https://github.com/dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS/blob/main/CLAUDE.md)
+[`CLAUDE.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/CLAUDE.md)
 para el esqueleto de componente completo y las convenciones de naming.

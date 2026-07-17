@@ -1,4 +1,4 @@
-# PYTO RAG Base Genera Proyectos
+# PYTO Base Para Generar Proyectos
 
 Framework genérico, agnóstico de dominio, para generar aplicaciones web vista a vista
 mediante un pipeline de agentes [Claude Code](https://claude.com/claude-code) coordinados
@@ -39,6 +39,6 @@ Ver [Pipeline](pipeline.md) para el detalle de las dos fases y los agentes impli
 ## Fuente de verdad
 
 Las reglas completas del proyecto viven en
-[`CLAUDE.md`](https://github.com/dbetancorfp/PYTO_RAG_BASE_GENERA_PROYECTOS/blob/main/CLAUDE.md)
+[`CLAUDE.md`](https://github.com/dbetancorfp/PYTO_BASE_PARA_GENERAR_PROYECTOS/blob/main/CLAUDE.md)
 en la raíz del repositorio — esta documentación lo resume para lectura humana, pero
 `CLAUDE.md` manda en caso de discrepancia.

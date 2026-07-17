@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "pyto-rag-base-genera-proyectos",
+      "name": "pyto-base-para-generar-proyectos",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.32.1",
         "dotenv": "^16.4.5",

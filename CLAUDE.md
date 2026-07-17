@@ -4,7 +4,7 @@ alwaysApply: true
 
 ## Project
 
-**PYTO_RAG_BASE_GENERA_PROYECTOS** — framework genérico, agnóstico de dominio, para generar
+**PYTO_BASE_PARA_GENERAR_PROYECTOS** — framework genérico, agnóstico de dominio, para generar
 aplicaciones web vista a vista mediante un pipeline de agentes Claude Code coordinados por
 un Orquestador conversacional, apoyado en una base de datos PostgreSQL real y (a futuro) en
 un sistema RAG que da contexto entre vistas.
