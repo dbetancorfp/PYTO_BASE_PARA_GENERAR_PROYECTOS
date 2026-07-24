@@ -141,7 +141,10 @@ implicates:
   a timeout with no clear network log entry, or both a wrong response and wrong rendering
   observed together). Say "both/ambiguous" explicitly rather than guessing a single layer.
 
-Report format:
+Report format — one `Layer implicated` tag per failing spec, not a single aggregate verdict
+(unlike `supervisor`'s and `reviewer`'s one-line `Layers implicated`): a Cypress run can fail
+several specs at once, each for a different reason, so the Orchestrator needs to see each
+one to decide the narrowest possible redo.
 
 ```
 FAIL

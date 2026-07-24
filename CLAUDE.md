@@ -374,6 +374,7 @@ lib/
   patterns/        # reusable structural templates — see "Pattern library"
 
 .claude/commands/  # one-line pointers to lib/agents/*/*.md
+.claude/agents/    # Task-tool subagent defs — only backend-implementer + frontend-implementer, for genuine parallel dispatch (see Pipeline)
 tecnologias/       # detailed stack decisions per layer (bbdd, code, front, qa, ux)
 tests/             # tests for the framework itself (schemas.test.js)
 ```

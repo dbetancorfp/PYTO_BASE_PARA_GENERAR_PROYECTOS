@@ -49,6 +49,12 @@ Each agent is a role file (`lib/agents/<agent>/<agent>.md`) that Claude Code rea
 directly in-session, triggered by its slash command (`.claude/commands/<agent>.md`) or by
 the `Skill` tool.
 
+**One exception:** `backend-implementer` and `frontend-implementer` are dispatched as
+genuine concurrent subagents (Claude Code's `Agent` tool, two calls in the same message,
+using the definitions in `.claude/agents/`) instead of the sequential `Skill`-based route
+every other agent in this table uses — the whole point of the split is that the two halves
+of a view's code get written at the same time, not one after the other.
+
 ## RAG *(planned, not built)*
 
 The Orchestrator and `view-designer` should eventually be able to query a `knowledge_base`

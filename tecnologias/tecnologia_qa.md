@@ -13,7 +13,9 @@ Source: `package.json`, `.github/workflows/`, `sonar-project.properties`,
 - **`@happy-dom/global-registrator`** — simulated DOM to test Web Components (Shadow DOM,
   `customElements`) inside `bun test`, without a real browser.
 - Backend: Postgres repositories are tested with a custom `Bun.SQL` double
-  (`tests/helpers/fake-sql.ts`), not against a real database in unit tests.
+  (`tests/helpers/fake-sql.ts`), not against a real database in unit tests —
+  **this file doesn't exist in the repo yet**; `tdd-engineer` creates it per view, the first
+  time a view needs a repository double.
 - Coverage: `bun test --coverage --coverage-reporter=lcov` → `coverage/lcov.info`,
   consumed by SonarCloud. **Gate: 100% coverage** (see `lib/agents/reviewer/`).
 
