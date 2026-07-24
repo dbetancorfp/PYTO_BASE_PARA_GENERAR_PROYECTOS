@@ -1,0 +1,111 @@
+{
+  "appOverview": "The Login view is the entry point for anyone who isn't already signed in. It collects an email and password, validates them client-side before ever contacting the server, and authenticates against a new `users` table (no `users` table exists yet in the real database — DATABASE_URL is configured and was queried, but it came back with no tables at all, so every column below is assumed from the description, not introspected, and must be created via schema-changes.sql). On success it redirects to /dashboard (a view that doesn't exist yet). On failure it distinguishes only between two states for the user: wrong credentials, or account locked — it never reveals which of email/password was wrong. There is no registration view yet; test accounts are assumed to be inserted directly for QA.",
+  "elementSpecs": [
+    {
+      "elementId": "login-heading",
+      "behavior": "Static heading, shows the app name. No interactivity, no state changes.",
+      "businessRules": [],
+      "dataNeeds": [],
+      "acceptanceCriteria": [
+        "The heading text is present and visible on first load"
+      ]
+    },
+    {
+      "elementId": "email-input",
+      "behavior": "Free-text input for the account's email. Validated client-side on submit attempt (via login-button), not on every keystroke. Clears its own invalid state as soon as the user edits it into something that would now pass validation.",
+      "businessRules": [
+        "Required — can't be empty on submit",
+        "Must contain '@' followed by at least one more character to be considered a valid email shape (client-side check only; the server is the source of truth for whether the account actually exists)"
+      ],
+      "dataNeeds": [
+        "users.email (new column — assumed unverified, not introspected: no users table exists yet)"
+      ],
+      "acceptanceCriteria": [
+        "Shows an inline validation message and does not send a request if submitted while empty",
+        "Shows an inline validation message and does not send a request if submitted with a value containing no '@'",
+        "Shows an inline validation message and does not send a request if submitted with a value that has '@' but nothing after it",
+        "Clears its inline validation message as soon as the value becomes a syntactically valid email, without needing another submit attempt"
+      ]
+    },
+    {
+      "elementId": "password-input",
+      "behavior": "Masked free-text input for the account's password. Starts masked; can be toggled to plain text via password-toggle-button. Validated only for presence on submit — no client-side complexity rules (length, character classes), since this is a login, not a registration, form.",
+      "businessRules": [
+        "Required — can't be empty on submit",
+        "Value is never logged or included in any client-side error message"
+      ],
+      "dataNeeds": [
+        "users.password_hash (new column — assumed unverified, not introspected: no users table exists yet; the plain-text password itself is never persisted, only its hash, per tecnologias/tecnologia_bbdd.md)"
+      ],
+      "acceptanceCriteria": [
+        "Shows an inline validation message and does not send a request if submitted while empty",
+        "Renders masked (dots) by default",
+        "Renders as plain text after password-toggle-button is clicked once, and back to masked after a second click"
+      ]
+    },
+    {
+      "elementId": "password-toggle-button",
+      "behavior": "Toggles password-input between masked and revealed. Purely a client-side UI toggle — never sends any request, never affects validation.",
+      "businessRules": [],
+      "dataNeeds": [],
+      "acceptanceCriteria": [
+        "Clicking it once changes password-input from masked to revealed",
+        "Clicking it again changes password-input back from revealed to masked",
+        "Has an accessible label announcing its current action (\"Show password\" / \"Hide password\")"
+      ]
+    },
+    {
+      "elementId": "login-button",
+      "behavior": "Runs client-side validation on email-input and password-input first. If either is invalid, focuses the first invalid field and does not send a request. If both are valid, sends a login request, enters its loading state (disabled, can't be double-clicked) until a response arrives, then either redirects to /dashboard (success) or shows login-error-message with the appropriate message (failure) and returns to its default state.",
+      "businessRules": [
+        "Never sends a request while email-input or password-input is in an invalid state",
+        "Disabled for the full duration of the request — a user can't trigger a second overlapping login request",
+        "On success, the failed-attempt counter for that account is reset to zero server-side before the redirect happens",
+        "On failure, shows exactly one of two messages depending on the server's response: wrong credentials, or account locked — never both, never neither"
+      ],
+      "dataNeeds": [
+        "users.email, users.password_hash, users.failed_login_attempts, users.account_locked (new columns — assumed unverified, not introspected: no users table exists yet)"
+      ],
+      "acceptanceCriteria": [
+        "Does not send a request when clicked while email-input or password-input is invalid",
+        "Enters a visibly disabled/loading state immediately after being clicked with two valid fields",
+        "Redirects to /dashboard after a successful login response",
+        "Shows \"Incorrect email or password\" in login-error-message after a wrong-credentials response, without indicating which field was wrong",
+        "Shows \"This account has been locked due to too many failed attempts. Contact support.\" in login-error-message after an account-locked response",
+        "Returns to its default (non-loading) state after any response, success or failure"
+      ]
+    },
+    {
+      "elementId": "forgot-password-link",
+      "behavior": "Static link, always visible below login-button. Explicitly out of scope: clicking it does nothing yet.",
+      "businessRules": [
+        "Does not navigate anywhere and does not send any request — out of scope per the description"
+      ],
+      "dataNeeds": [],
+      "acceptanceCriteria": [
+        "Is present and visible below the login button on first load"
+      ]
+    },
+    {
+      "elementId": "login-error-message",
+      "behavior": "Hidden by default. Shown only as a direct consequence of login-button's failed response, with one of two possible messages. Never shown proactively, never shown for client-side validation errors (those belong to email-input/password-input's own inline messages, not to this element).",
+      "businessRules": [
+        "Never distinguishes \"wrong email\" from \"wrong password\" — always the same generic message for invalid credentials",
+        "Announced to assistive technology immediately when it becomes visible (aria-live=assertive)"
+      ],
+      "dataNeeds": [],
+      "acceptanceCriteria": [
+        "Not present/visible on first load",
+        "Shows exactly \"Incorrect email or password\" after a wrong-credentials login response",
+        "Shows exactly \"This account has been locked due to too many failed attempts. Contact support.\" after an account-locked login response"
+      ]
+    }
+  ],
+  "globalRules": [
+    "After 5 failed login attempts in a row for the same account, that account becomes locked and stays locked until support intervenes — a subsequent attempt with the correct password still fails while locked",
+    "A successful login resets that account's failed-attempt counter to zero",
+    "The view never reveals whether a given email exists in the system, in any message, at any point",
+    "There is no 'remember me' option and no third-party/social login on this view — both explicitly out of scope",
+    "The /dashboard destination and the registration view are out of scope for this view — this view's responsibility ends at a successful login redirect"
+  ]
+}
