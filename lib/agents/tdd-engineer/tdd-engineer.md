@@ -36,8 +36,10 @@ there's no automatic gate to check before starting.
 ## Output artifact
 
 ```
-src/backend/tests/*.test.ts    — API and domain tests
-src/frontend/tests/*.test.ts   — component tests
+src/backend/tests/*.test.ts               — API and domain tests
+src/backend/tests/helpers/fake-sql.ts     — shared Bun.SQL double (create once, reuse across views)
+src/backend/tests/pg-<entity>.repository.test.ts  — one per new Postgres repository this view introduces
+src/frontend/tests/*.test.ts              — component tests
 ```
 
 ---
@@ -123,6 +125,36 @@ stage.
 
 ---
 
+## Postgres repositories always get their own unit test
+
+Every view whose `schema-changes.sql` introduces a table needs a repository (DIP: one
+interface, two implementations — in-memory and Postgres, see
+`tecnologias/tecnologia_bbdd.md`). `backend-implementer` writes both, but only the
+in-memory one gets naturally exercised by the rest of the suite (API/service tests run
+with `DATA_BACKEND=memory`). If nothing tests the Postgres implementation directly,
+`reviewer`'s 100% coverage gate fails on it every time — real, DIP-mandated, production
+code with zero coverage — and `backend-implementer` can't fix that: writing a new test is
+out of scope for Phase B, and deleting the code isn't right either, since it's not
+leftover, it's required. **This is a preventable gap, not a Phase B redo: write the
+missing test yourself, now, in Phase A, every time.**
+
+1. If `src/backend/tests/helpers/fake-sql.ts` doesn't exist yet (the first view that needs
+   one), create it: a function double that records every tagged-template call
+   (`strings`/`values`) and returns pre-programmed rows, matching the `SqlExecutor`
+   structural interface (`src/backend/src/db/sql-executor.ts`) — see
+   `tecnologias/tecnologia_qa.md`. Reuse it for every subsequent view; don't recreate it.
+2. For the new `Pg<Entity>Repository`, write
+   `src/backend/tests/pg-<entity>.repository.test.ts` covering: each method's row→domain
+   mapping, the exact SQL parameters passed (assert against the double's recorded calls),
+   and any repository-level business rule the concrete implementation enforces (e.g. a
+   lockout-style threshold computed inside an `UPDATE ... RETURNING` statement).
+3. This test is red until `backend-implementer` writes the concrete repository, same as
+   every other test you generate. It doesn't replace the in-memory-backed integration test
+   from Step 3 below — both exist, testing different things (the real SQL mapping vs. the
+   API contract).
+
+---
+
 ## Generation rules
 
 ### Required structure
@@ -176,7 +208,15 @@ For each UC in `use-cases.md` that involves API calls:
 1. Create an integration test against the corresponding endpoint in `api-contracts.md`
 2. Verify the contract: method, route, status code, response structure
 
-### Step 4 — Verify the tests fail and that they enforce SOLID
+### Step 4 — Generate Postgres repository tests, if this view introduces one
+
+1. Check `schema-changes.sql` — if it creates a new table, this view introduces a new
+   repository.
+2. Create (or reuse) `src/backend/tests/helpers/fake-sql.ts` and write
+   `src/backend/tests/pg-<entity>.repository.test.ts` per the rules above. Skip this step
+   entirely if the view reuses an existing table/repository with no new methods.
+
+### Step 5 — Verify the tests fail and that they enforce SOLID
 
 ```bash
 bun test
@@ -191,7 +231,7 @@ Then verify that each test forces the corresponding backend-implementer/frontend
 - [ ] Each `describe()` tests a single responsibility (SRP)
 - [ ] Test doubles are interfaces, not concrete classes (DIP + ISP)
 
-### Step 5 — Verify target coverage
+### Step 6 — Verify target coverage
 
 `reviewer` requires **100% code coverage** via SonarCloud before considering a view
 complete (see `tecnologias/tecnologia_qa.md`). Before confirming, check that you're leaving
@@ -204,10 +244,13 @@ every branch covered by the test design itself:
 - Every conditional branch the implementation is likely to have (validations, errors, edge
   cases) has a test that exercises it
 
-If `reviewer` later rejects the view for insufficient coverage, you'll be called back to
-add the missing tests.
+If `reviewer` later rejects the view for insufficient coverage on code it can't attribute
+to `backend-implementer`/`frontend-implementer` (real, necessary code with no test — see
+`reviewer.md`'s `Layers implicated: requires-tdd-engineer`), the Orchestrator calls you
+back, once, to add the missing test — this is the formal exception to Phase B not touching
+`tdd-engineer`, reserved for exactly this case.
 
-### Step 6 — Confirm
+### Step 7 — Confirm
 
 Tell the user:
 - Number of test files generated

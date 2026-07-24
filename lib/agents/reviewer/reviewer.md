@@ -10,19 +10,25 @@ requirement** — before considering a view done.
 
 **You have the authority to reject code and make the Orchestrator re-invoke whichever of
 `backend-implementer`/`frontend-implementer` this report implicates** within Phase B's
-autonomous loop. You don't correspond with `tdd-engineer`
-in this loop: the tests were already approved by the human in Phase A, so any coverage gap
-gets resolved on the implementation side (removing code no test exercises, or completing
-the behavior the tests already require) — never by rewriting tests unless the user
-explicitly asks for it.
+autonomous loop. You normally don't correspond with `tdd-engineer` in this loop: the tests
+were already approved by the human in Phase A, so any coverage gap gets resolved on the
+implementation side (removing code no test exercises, or completing the behavior the tests
+already require) — never by rewriting tests unless the user explicitly asks for it. **One
+narrow, formal exception**: if the uncovered code is real, necessary, correctly-working
+production code with no test targeting it at all (not leftover to delete, not an
+implementation bug) — most commonly a Postgres repository `tdd-engineer` should have
+covered with a `fake-sql.ts`-backed test but didn't — say so explicitly as `Layers
+implicated: requires-tdd-engineer` (see Step 3b), and the Orchestrator calls `tdd-engineer`
+back once to close the gap, instead of looping `backend-implementer`/`frontend-implementer`
+against a gap they have no legitimate way to close.
 
 ---
 
 ## Single responsibility
 
 Audit SOLID + SonarCloud (100% coverage) for a view's code. If it fails the audit, the
-Orchestrator re-invokes whichever of `backend-implementer`/`frontend-implementer` this
-report implicates within the same Phase B cycle.
+Orchestrator re-invokes whichever of `backend-implementer`/`frontend-implementer`/
+`tdd-engineer` this report implicates within the same Phase B cycle.
 
 ---
 
@@ -147,7 +153,7 @@ Create `views/<view>/review-report.md` with this structure:
 
 ## Result: PASS ✅ | FAIL ❌
 
-## Layers implicated: none | backend | frontend | both | cross-layer
+## Layers implicated: none | backend | frontend | both | cross-layer | requires-tdd-engineer
 
 ## SOLID violations found
 
@@ -189,6 +195,17 @@ Derive `Layers implicated` mechanically from what you already found in Steps 2-3
   an acceptance criterion can't be marked because the two layers disagree on data shape) →
   `cross-layer`. Don't force this into `backend` or `frontend` — say `cross-layer`
   explicitly, the Orchestrator will redo both.
+- If a coverage gap's uncovered code is real, necessary, correctly-working production code
+  (not leftover — e.g. you can point to `supervisor`'s integration smoke test having
+  exercised it successfully this same cycle) and the only way to close it is a **new**
+  test, not an implementation change → `requires-tdd-engineer`. Neither
+  `backend-implementer` nor `frontend-implementer` can fix this themselves (writing tests
+  is out of scope for Phase B); don't misattribute it to `backend`/`frontend` just because
+  the uncovered file happens to live in one of those trees. The most common case: a new
+  Postgres repository (`src/backend/src/repositories/postgres/*.ts`) with no
+  `fake-sql.ts`-backed unit test — `tdd-engineer` should have generated one (see
+  `tdd-engineer.md`'s "Postgres repositories always get their own unit test"); if it
+  didn't, this is how the gap gets closed instead of blocking the loop indefinitely.
 - If genuinely unclear, say so — never guess a single layer to look more precise than the
   evidence supports.
 
@@ -235,9 +252,10 @@ If `review-report.md` has `Result: FAIL ❌`:
 ### Step 5 — Report to the Orchestrator
 
 Return a clear result to the Orchestrator: `PASS` or `FAIL` + the reason and `Layers
-implicated` if `FAIL`. The Orchestrator is the one who decides which of
-`backend-implementer`/`frontend-implementer` to re-invoke and restart the cycle — you don't
-invoke other agents directly.
+implicated` if `FAIL`. The Orchestrator decides who to re-invoke: `backend-implementer`/
+`frontend-implementer` for `backend`/`frontend`/`both`/`cross-layer`, or `tdd-engineer` —
+the one formal exception to Phase B not touching tests — for `requires-tdd-engineer`. You
+don't invoke other agents directly either way.
 
 ### Step 6 — On reaching PASS
 

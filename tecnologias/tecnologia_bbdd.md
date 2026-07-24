@@ -67,12 +67,16 @@ Source: `src/backend/src/db/`, `src/backend/src/repositories/`, `views/<view>/sc
 
 - `bun run db:setup` — applies the accumulated DDL against `DATABASE_URL`; an environment
   variable forces a full reset in local/test.
-- `bun run db:seed:e2e` — deterministic data for Cypress.
+- `bun run db:seed:e2e` (`scripts/db-seed-e2e.ts`) — deterministic data for Cypress,
+  created/extended by `e2e-engineer` the first time a view needs seeded fixtures (see
+  `tecnologias/tecnologia_qa.md`).
 - CI (`.github/workflows/ci.yml`, `e2e.yml` — on-demand outputs of `/ci-setup`, **not
   generated yet**; only `deploy-docs.yml` exists today): a `postgres:16` service container
   on GitHub Actions (no Testcontainers) to run `bun test` against a real database.
 - Unit tests for Postgres repositories use a custom `Bun.SQL` double
-  (`tests/helpers/fake-sql.ts`), not a real database or Testcontainers.
+  (`src/backend/tests/helpers/fake-sql.ts`), not a real database or Testcontainers —
+  created once by `tdd-engineer`, mandatory for every new Postgres repository (see
+  `lib/agents/tdd-engineer/tdd-engineer.md`).
 
 ## Bulk data import
 

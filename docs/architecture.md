@@ -12,7 +12,7 @@
 | Backend | Bun + Express 5 + TypeScript |
 | Pipeline artifact validation | Zod (`lib/schemas/`) |
 | Frontend | Native Web Components + lit-html + Tailwind CSS 3.x + TypeScript |
-| Frontend build | `bun build` |
+| Frontend build | `bun build` + Tailwind CLI |
 | Unit tests | `bun test` |
 | E2E tests | Cypress |
 | Code quality | SOLID (audited by the `reviewer` agent) + SonarCloud (100% coverage) |
@@ -45,9 +45,11 @@ views/
 src/
   backend/
     src/                            # backend-implementer output
-    tests/                          # tdd-engineer output
+    tests/                          # tdd-engineer output (+ tests/helpers/fake-sql.ts, shared)
   frontend/
     src/                            # frontend-implementer output (Web Components)
+    src/main.ts                     # e2e-engineer output (first use) — bootstrap entry
+    index.html                      # e2e-engineer output (first use)
     dist/                           # bun build output
     tests/                          # tdd-engineer output
     cypress/e2e/                    # e2e-engineer output
@@ -57,10 +59,15 @@ lib/
   schemas/         # ui-spec.schema.js, functional-spec.schema.js (Zod)
   patterns/        # reusable structural templates (see "Pattern library")
 
+scripts/
+  db-seed-e2e.ts   # e2e-engineer output (first use) — deterministic Cypress fixtures
+
 .claude/commands/  # one-line pointers to lib/agents/*/*.md
 .claude/agents/    # Task-tool subagent defs — only backend-implementer + frontend-implementer, for genuine parallel dispatch (see Pipeline)
 tecnologias/       # detailed stack decisions per layer
 docs/              # this documentation (MkDocs)
+cypress.config.ts  # e2e-engineer output (first use)
+tailwind.config.js # e2e-engineer output (first use)
 ```
 
 ## Pattern library

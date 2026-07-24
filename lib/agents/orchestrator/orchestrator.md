@@ -35,6 +35,7 @@ phase: A | B
 current_step: view-designer | requirement-architect | tdd-engineer
              | backend-implementer+frontend-implementer (parallel) | supervisor
              | reviewer | e2e-engineer
+             # tdd-engineer can recur in Phase B — see reviewer's requires-tdd-engineer verdict
 current_cycle: 1..10   (Phase B only)
 ```
 
@@ -140,6 +141,15 @@ while cycle <= 10:
         if implicated == backend only:   re-dispatch ONLY backend-implementer
         if implicated == frontend only:  re-dispatch ONLY frontend-implementer
         if implicated == both/cross-layer/ambiguous: re-dispatch BOTH, concurrently
+        if implicated == requires-tdd-engineer:
+            # the ONE formal exception to "Phase B never touches Phase A agents" — real,
+            # necessary code with no test targeting it, which backend-implementer/
+            # frontend-implementer have no legitimate way to fix themselves (see
+            # reviewer.md's Profile). No human checkpoint here: this only adds a missing
+            # test, it doesn't change approved behavior/specs.
+            run tdd-engineer (via Skill) to add exactly the test review-report.md names
+            re-dispatch whichever of backend-implementer/frontend-implementer owns the
+            now-covered code, so it can re-confirm nothing regressed
         go back to Step 2 (supervisor gate) — don't skip straight back to reviewer;
         confirm the targeted fix's own unit tests pass before spending another
         reviewer pass on it
@@ -174,6 +184,8 @@ Important details:
   the fix.
 - When a cycle restarts, you go back to the implementer step, never to `view-designer` or
   the other Phase A agents — Phase B never touches specs the human has already approved.
+  The one exception is `reviewer`'s `requires-tdd-engineer` verdict, which re-invokes
+  `tdd-engineer` to add a missing test — not to change any spec or approved behavior.
 - Prefer the narrowest possible redo at every branch: single layer when the failure is
   attributable to one, both only when it's genuinely cross-layer or the report can't
   attribute it. This is the same principle applied three times (supervisor gate, reviewer

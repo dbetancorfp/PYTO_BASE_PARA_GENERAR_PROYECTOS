@@ -13,21 +13,30 @@ Source: `package.json`, `.github/workflows/`, `sonar-project.properties`,
 - **`@happy-dom/global-registrator`** — simulated DOM to test Web Components (Shadow DOM,
   `customElements`) inside `bun test`, without a real browser.
 - Backend: Postgres repositories are tested with a custom `Bun.SQL` double
-  (`tests/helpers/fake-sql.ts`), not against a real database in unit tests —
-  **this file doesn't exist in the repo yet**; `tdd-engineer` creates it per view, the first
-  time a view needs a repository double.
+  (`src/backend/tests/helpers/fake-sql.ts`), not against a real database in unit tests.
+  `tdd-engineer` creates this file once (the first view that needs a repository double) and
+  reuses it for every subsequent view — see `tdd-engineer.md`'s "Postgres repositories
+  always get their own unit test". This is mandatory, not optional: skipping it is exactly
+  what makes `reviewer`'s 100% coverage gate fail on real, necessary Postgres-repository
+  code that neither implementer can fix themselves — see `reviewer.md`'s
+  `requires-tdd-engineer` verdict for the recovery path if it's ever missed.
 - Coverage: `bun test --coverage --coverage-reporter=lcov` → `coverage/lcov.info`,
   consumed by SonarCloud. **Gate: 100% coverage** (see `lib/agents/reviewer/`).
 
 ## End-to-end tests
 
 - **Cypress** — specs per use case in `src/frontend/cypress/e2e/uc-XX-*.cy.ts`, main flow +
-  critical alternative flow per use case.
+  critical alternative flow per use case. Config: `cypress.config.ts` (repo root).
 - `includeShadowDom: true` (required because of each component's Shadow DOM).
 - **`start-server-and-test`** orchestrates starting the Express server in `DATA_BACKEND=
-  postgres` mode + `cypress run` in a single command.
-- Deterministic data seeded before each suite against real Postgres — no network mocking in
-  e2e.
+  postgres` mode + `cypress run` in a single command — wired up as `package.json`'s `e2e`
+  script (`build` → `db:seed:e2e` → server up → `cypress run` → server down).
+- Deterministic data seeded before each suite against real Postgres via
+  `scripts/db-seed-e2e.ts` (`bun run db:seed:e2e`) — no network mocking in e2e. `e2e-engineer`
+  creates/extends this script the first time a view needs seeded fixtures; see
+  `e2e-engineer.md`'s Step 0, which also creates the Cypress config, the frontend build
+  wiring, and the static-serving route the first time any of them is missing — no other
+  agent in the pipeline owns that infrastructure.
 - No CI workflow for Cypress (explicit in `CLAUDE.md`): e2e only runs locally, unlike unit
   tests, which do run in GitHub Actions.
 
@@ -44,7 +53,10 @@ Source: `package.json`, `.github/workflows/`, `sonar-project.properties`,
   object-oriented design violations.
 - **SOLID** principles reviewed as an explicit checklist, audited by `reviewer`, which
   rejects the code and makes the Orchestrator re-invoke the implicated implementer(s)
-  (`backend-implementer` and/or `frontend-implementer`) until it complies.
+  (`backend-implementer` and/or `frontend-implementer`) until it complies — or, for the one
+  case neither implementer can fix (real, necessary code with no test at all, most often a
+  Postgres repository), re-invokes `tdd-engineer` instead (`Layers implicated:
+  requires-tdd-engineer`, see `reviewer.md`).
 
 ## CI/CD
 
