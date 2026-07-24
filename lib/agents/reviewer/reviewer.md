@@ -230,11 +230,13 @@ If it's ❌:
 
 1. Identify which metrics fail
 2. Add the failures to `review-report.md` under **SonarCloud Quality Gate**
-3. Every failure (coverage, bugs, vulnerabilities, duplication, code smells) gets fixed on
+3. Most failures (coverage, bugs, vulnerabilities, duplication, code smells) get fixed on
    `backend-implementer`'s or `frontend-implementer`'s side (whichever `review-report.md`
    implicates) within this loop — if it's coverage, remember the implementer should only
-   implement what the tests require (see `backend-implementer.md` / `frontend-implementer.md`), so a coverage gap almost always means there's leftover code to remove, not a missing
-   test
+   implement what the tests require (see `backend-implementer.md` / `frontend-implementer.md`), so a coverage gap usually means there's leftover code to remove, not a missing
+   test. **Exception**: if you determined `Layers implicated: requires-tdd-engineer` in
+   Step 3b (real, necessary code with no test at all — not leftover), don't route it to
+   either implementer; that's what the exception exists for.
 
 ### Step 4b — Open a GitHub Issue if the result is FAIL
 

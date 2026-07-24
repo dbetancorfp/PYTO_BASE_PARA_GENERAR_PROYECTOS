@@ -228,7 +228,7 @@ bun test                          # GREEN ✅ (run both suites, or scoped per la
 /supervisor
 /reviewer
 /e2e-engineer
-bunx cypress run
+bun run e2e                       # build + seed + serve + cypress run + teardown
 
 # On-demand
 /ci-setup

@@ -257,6 +257,11 @@ Tell the user:
 - Total number of `it()` blocks
 - Result of `bun test` (should be all red)
 
-This confirmation is a Phase A checkpoint for the Orchestrator: don't continue until the
-user approves or asks for a redo. Only after explicit approval ("implement") does the
-Orchestrator move to Phase B.
+**In Phase A** (normal invocation): this confirmation is a human checkpoint — don't
+continue until the user approves or asks for a redo. Only after explicit approval
+("implement") does the Orchestrator move to Phase B.
+
+**If you were re-invoked mid-Phase-B** (the `requires-tdd-engineer` exception, see Step
+6): report the same way, but skip the checkpoint — the Orchestrator moves straight on, no
+approval wait. Adding a missing test to close a coverage gap doesn't change any approved
+spec or behavior, which is what the human checkpoint exists to gate.

@@ -148,8 +148,11 @@ while cycle <= 10:
             # reviewer.md's Profile). No human checkpoint here: this only adds a missing
             # test, it doesn't change approved behavior/specs.
             run tdd-engineer (via Skill) to add exactly the test review-report.md names
-            re-dispatch whichever of backend-implementer/frontend-implementer owns the
-            now-covered code, so it can re-confirm nothing regressed
+            # don't assume the implementer needs re-dispatching too — the code this test
+            # targets was already reported working (that's WHY it's requires-tdd-engineer
+            # and not backend/frontend); go straight to the supervisor gate and let the new
+            # test's own result decide. If it unexpectedly fails, supervisor's normal
+            # per-layer routing handles that redo — no special case needed here.
         go back to Step 2 (supervisor gate) — don't skip straight back to reviewer;
         confirm the targeted fix's own unit tests pass before spending another
         reviewer pass on it

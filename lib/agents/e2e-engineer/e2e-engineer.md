@@ -147,7 +147,7 @@ one that already exists, another view's e2e-engineer pass may already have set i
 
 None of this is view-specific behavior or business logic — it's infrastructure, created
 once and reused. Don't ask the human before doing this (it doesn't touch specs or approved
-behavior); do note what you created in your Step 6 confirmation, so it's visible.
+behavior); do note what you created in your Step 4 confirmation, so it's visible.
 
 ### Step 1 — Read context
 
