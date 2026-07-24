@@ -12,13 +12,15 @@ Phase A — step by step, human review required at every point
     → tdd-engineer            → TDD tests (red) → human review → redo | "implement"
 
 Phase B — autonomous, up to 10 full cycles, no stopping
-    → implementer writes/fixes code → TDD tests
-         fail → re-run implementer (doesn't consume a cycle)
-         pass → reviewer (SOLID + SonarCloud, 100% coverage gate)
-              fail → back to implementer (restarts the cycle, +1)
-              pass → e2e-engineer (Cypress)
-                   fail → back to implementer (restarts the cycle, +1)
-                   pass → Orchestrator announces: "view complete"
+    → backend-implementer + frontend-implementer (run in parallel)
+    → supervisor (per-layer unit tests + integration/contract smoke test between the two)
+         Layers implicated: none → reviewer (SOLID + SonarCloud, 100% coverage gate, unified pass)
+         Layers implicated: backend|frontend|both/cross-layer → re-dispatch only what's implicated (doesn't consume a cycle) → back to supervisor
+    → reviewer
+         fail → redo the layer(s) review-report.md implicates (both if cross-layer/ambiguous); cycle += 1; back to supervisor gate
+         pass → e2e-engineer (Cypress, unified pass)
+              fail → redo the layer(s) its report implicates (both if ambiguous); cycle += 1; back to supervisor gate
+              pass → Orchestrator announces: "view complete"
     → after 10 cycles without converging → Orchestrator reports the failure
 ```
 
@@ -35,8 +37,10 @@ that runs through the rest of the pipeline:
 | `view-designer` | Designs the UI and behavior of a view from its natural-language description; introspects the real DB if `DATABASE_URL` is configured | `views/<view>/description_<view>.md` | `views/<view>/ui-spec.json` + `views/<view>/functional-spec.json` |
 | `requirement-architect` | Use cases + API contracts + incremental schema changes if the view needs them | `ui-spec.json` + `functional-spec.json` | `views/<view>/use-cases.md` + `views/<view>/api-contracts.md` (+ `schema-changes.sql`) |
 | `tdd-engineer` | Red unit tests from the acceptance criteria | `use-cases.md` + `api-contracts.md` | `src/{backend,frontend}/tests/*.test.ts` |
-| `implementer` | Minimal code to make the tests pass; also fixes code during Phase B | Red tests + specs | `src/{backend,frontend}/src/` |
-| `reviewer` | SOLID + SonarCloud audit (gate: 100% coverage) | Code + tests | `views/<view>/review-report.md` |
+| `backend-implementer` | Backend code only, dispatched as a concurrent subagent alongside `frontend-implementer` during Phase B | Red backend tests + `api-contracts.md` + `schema-changes.sql` | `src/backend/src/` |
+| `frontend-implementer` | Frontend code only, dispatched as a concurrent subagent alongside `backend-implementer` during Phase B | Red frontend tests + `ui-spec.json` + `functional-spec.json` + `api-contracts.md` (read-only) | `src/frontend/src/` |
+| `supervisor` | Per-layer unit tests + an integration/contract smoke test between backend and frontend, after the parallel implementation step; tells the Orchestrator which layer(s), if any, to re-invoke | `src/backend/tests/` + `src/frontend/tests/` + `api-contracts.md` | `Layers implicated: none\|backend\|frontend\|both\|cross-layer` (report only, no files written) |
+| `reviewer` | SOLID + SonarCloud audit (gate: 100% coverage), unified across both layers | Code + tests | `views/<view>/review-report.md` |
 | `e2e-engineer` | Cypress tests per use case | `use-cases.md` + specs | `src/frontend/cypress/e2e/*.cy.ts` |
 | `ci-setup` *(on-demand)* | GitHub Actions workflows | `CLAUDE.md` + `package.json` | `.github/workflows/*.yml` |
 | `doc-reviewer` *(on-demand)* | Audits the consistency of all documentation against the repo's real state | Everything above | Report (no writes) |

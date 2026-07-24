@@ -111,4 +111,4 @@ app.use('/api/<entities>', <entity>Router(service));
 ## Domain errors
 
 Don't throw a generic `Error` from the service. Use an error class with a `code`, mapped
-centrally in `routes/error.ts` (see `implementer.md` → "Implementation rules").
+centrally in `routes/error.ts` (see `backend-implementer.md` → "Implementation rules").

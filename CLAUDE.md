@@ -83,13 +83,15 @@ Phase A — step by step, human review required at every point
     → tdd-engineer            → TDD tests (red) → human review → redo | "implement"
 
 Phase B — autonomous, up to 10 full cycles, no stopping
-    → implementer writes/fixes code → TDD tests
-         fail → re-run implementer (doesn't consume a cycle)
-         pass → reviewer (SOLID + SonarCloud, 100% coverage gate)
-              fail → back to implementer (restarts the cycle, +1)
-              pass → e2e-engineer (Cypress)
-                   fail → back to implementer (restarts the cycle, +1)
-                   pass → Orchestrator announces: "view complete"
+    → backend-implementer + frontend-implementer (run in parallel)
+    → supervisor (per-layer unit tests + integration/contract smoke test between the two)
+         Layers implicated: none → reviewer (SOLID + SonarCloud, 100% coverage gate, unified pass)
+         Layers implicated: backend|frontend|both/cross-layer → re-dispatch only what's implicated (doesn't consume a cycle) → back to supervisor
+    → reviewer
+         fail → redo the layer(s) review-report.md implicates (both if cross-layer/ambiguous); cycle += 1; back to supervisor gate
+         pass → e2e-engineer (Cypress, unified pass)
+              fail → redo the layer(s) its report implicates (both if ambiguous); cycle += 1; back to supervisor gate
+              pass → Orchestrator announces: "view complete"
     → after 10 cycles without converging → Orchestrator reports the failure
 ```
 
@@ -106,20 +108,68 @@ flowchart TD
         RVB -- continue --> TDD["tdd-engineer<br/>→ TDD tests (red)"]
         TDD --> RVC{"human review"}
         RVC -- redo --> TDD
-        RVC -- "implement" --> Impl
+        RVC -- "implement" --> BI
+        RVC -- "implement" --> FI
     end
 
     subgraph PhaseB["Phase B — autonomous, up to 10 full cycles, no stopping"]
-        Impl["implementer<br/>writes/fixes code"] --> UT{"TDD tests"}
-        UT -- fail --> Impl
-        UT -- pass --> Rev{"reviewer<br/>SOLID + SonarCloud<br/>100% coverage gate"}
-        Rev -- "fail (+1 cycle)" --> Impl
-        Rev -- pass --> E2E{"e2e-engineer<br/>Cypress"}
-        E2E -- "fail (+1 cycle)" --> Impl
-        E2E -- pass --> Done(["Orchestrator: 'view complete'"])
-        Impl -. "10 cycles, no convergence" .-> Fail(["Orchestrator reports failure"])
+        direction TB
+
+        subgraph Step1["Step 1 — parallel implementation (concurrent subagents)"]
+            direction LR
+            BI["backend-implementer"]
+            FI["frontend-implementer"]
+        end
+
+        subgraph Step2["Step 2 — supervisor: TEST gate (redo costs no cycle)"]
+            Sup{"bun test backend/frontend<br/>+ integration/contract<br/>smoke test between them"}
+        end
+
+        subgraph Step3["Step 3 — reviewer: SOLID + SONAR gate (unified pass, fail costs +1 cycle)"]
+            Rev{"SOLID audit +<br/>SonarCloud Quality Gate<br/>100% coverage"}
+        end
+
+        subgraph Step4["Step 4 — e2e-engineer: CYPRESS gate (unified pass, fail costs +1 cycle)"]
+            E2E{"Cypress specs<br/>per use case"}
+        end
+
+        BI --> Sup
+        FI --> Sup
+        Sup -- "Layers implicated: backend → redo backend only" --> BI
+        Sup -- "Layers implicated: frontend → redo frontend only" --> FI
+        Sup -- "Layers implicated: both/cross-layer → redo both" --> BI
+        Sup -- "Layers implicated: both/cross-layer → redo both" --> FI
+        Sup -- "Layers implicated: none" --> Rev
+
+        Rev -- "FAIL, backend implicated (+1 cycle)<br/>redo backend, then back to TEST gate" --> BI
+        Rev -- "FAIL, frontend implicated (+1 cycle)<br/>redo frontend, then back to TEST gate" --> FI
+        Rev -- "FAIL, cross-layer/ambiguous (+1 cycle)<br/>redo both, then back to TEST gate" --> BI
+        Rev -- "FAIL, cross-layer/ambiguous (+1 cycle)<br/>redo both, then back to TEST gate" --> FI
+        Rev -- PASS --> E2E
+
+        E2E -- "FAIL, layer implicated (+1 cycle)<br/>redo layer(s), then back to TEST gate" --> BI
+        E2E -- "FAIL, layer implicated (+1 cycle)<br/>redo layer(s), then back to TEST gate" --> FI
+        E2E -- PASS --> Done(["Orchestrator: 'view complete'"])
+
+        Sup -. "10 cycles, no convergence" .-> Fail(["Orchestrator reports failure"])
     end
 ```
+
+The TEST gate isn't just "each layer's own unit tests" — `backend-implementer` and
+`frontend-implementer` write concurrently from the same `api-contracts.md` without talking
+to each other mid-task, so `supervisor` also runs a lightweight integration/contract smoke
+test (real HTTP calls against the running backend, checked against what the frontend
+actually calls and expects) before declaring `Layers implicated: none`. This is the first
+point where the two layers are checked against each other — cheaper than discovering a
+wire-level mismatch only when `e2e-engineer`'s full Cypress run fails later.
+
+Every redo — whether triggered by the TEST gate, the SOLID+SONAR gate, or the CYPRESS
+gate — always re-enters through `backend-implementer`/`frontend-implementer`, whose only
+forward edge is back into the TEST gate (`supervisor`). So a `reviewer`/`e2e-engineer`
+failure never re-runs the same gate directly on the just-patched code: it always confirms
+the fix's own unit tests (and the integration smoke test) pass first, then proceeds. Only
+`supervisor`-triggered redos are free (no cycle cost); a `reviewer` or `e2e-engineer` FAIL
+is what advances `current_cycle`.
 
 There is no visual mockup and no external element numbering. Every element of a view gets
 an **`elementId`** (kebab-case string) assigned by `view-designer` — this is the identifier
@@ -134,8 +184,10 @@ use-cases.md → tests → code`.
 | `view-designer` | Designs the UI and behavior of a view from its natural-language description; introspects the real DB if `DATABASE_URL` is configured | `views/<view>/description_<view>.md` | `views/<view>/ui-spec.json` + `views/<view>/functional-spec.json` |
 | `requirement-architect` | Use cases + API contracts + incremental schema changes if the view needs them | `ui-spec.json` + `functional-spec.json` | `views/<view>/use-cases.md` + `views/<view>/api-contracts.md` (+ `schema-changes.sql`) |
 | `tdd-engineer` | Red unit tests from the acceptance criteria | `use-cases.md` + `api-contracts.md` | `src/{backend,frontend}/tests/*.test.ts` |
-| `implementer` | Minimal code to make the tests pass; also fixes code during Phase B | Red tests + specs | `src/{backend,frontend}/src/` |
-| `reviewer` | SOLID + SonarCloud audit (gate: 100% coverage) | Code + tests | `views/<view>/review-report.md` |
+| `backend-implementer` | Backend code only, dispatched as a concurrent subagent alongside `frontend-implementer` during Phase B | Red backend tests + `api-contracts.md` + `schema-changes.sql` | `src/backend/src/` |
+| `frontend-implementer` | Frontend code only, dispatched as a concurrent subagent alongside `backend-implementer` during Phase B | Red frontend tests + `ui-spec.json` + `functional-spec.json` + `api-contracts.md` (read-only) | `src/frontend/src/` |
+| `supervisor` | Per-layer unit tests + an integration/contract smoke test between backend and frontend, after the parallel implementation step; tells the Orchestrator which layer(s), if any, to re-invoke | `src/backend/tests/` + `src/frontend/tests/` + `api-contracts.md` | `Layers implicated: none\|backend\|frontend\|both\|cross-layer` (report only, no files written) |
+| `reviewer` | SOLID + SonarCloud audit (gate: 100% coverage), unified across both layers | Code + tests | `views/<view>/review-report.md` |
 | `e2e-engineer` | Cypress tests per use case | `use-cases.md` + specs | `src/frontend/cypress/e2e/*.cy.ts` |
 | `ci-setup` *(on-demand)* | GitHub Actions workflows | `CLAUDE.md` + `package.json` | `.github/workflows/*.yml` |
 | `doc-reviewer` *(on-demand)* | Audits the consistency of all documentation | Everything above | Report (no writes) |
@@ -145,6 +197,15 @@ directly in-session, triggered by its slash command (`.claude/commands/<agent>.m
 one-line pointer) or by the `Skill` tool. There is no separate orchestration process and no
 intermediate database for the pipeline itself: each agent reads its inputs and writes its
 outputs directly to the filesystem (`views/<view>/`, `src/`).
+
+**One exception, stated precisely so it doesn't contradict the above:** `backend-implementer` and `frontend-implementer` are dispatched as genuine concurrent subagents
+(the `Agent` tool, two calls in the same message, using the definitions in
+`.claude/agents/`) — not as a sequential `Skill`-based persona switch like every other
+agent in this table. This is still not a separate orchestration *process* (no daemon, no
+scheduler, no database) — it is a single Orchestrator session using Claude Code's own
+native concurrent-subagent capability for the one step where genuine parallelism, not just
+sequencing, is the point. Every other step, including `supervisor`, still uses the
+`Skill`-based route.
 
 ### CLI
 
@@ -157,8 +218,10 @@ outputs directly to the filesystem (`views/<view>/`, `src/`).
 /requirement-architect
 /tdd-engineer
 bun test                          # RED ✗
-/implementer
-bun test                          # GREEN ✅
+/backend-implementer
+/frontend-implementer
+bun test                          # GREEN ✅ (run both suites, or scoped per layer)
+/supervisor
 /reviewer
 /e2e-engineer
 bunx cypress run
@@ -184,9 +247,10 @@ schema — reviewed by the human or by the next agent that reads them directly.
 
 `lib/patterns/` holds structural templates (not runnable code) for the shapes that repeat
 across different views — backend CRUD, cascading select, reactive filter, inline-edit CRUD
-table. `implementer` checks them before writing a service or component that fits one of
-those shapes, so it doesn't reinvent the structure view by view or produce variants that
-`reviewer` would have to reject for duplication/design inconsistency. This was chosen —
+table. `backend-implementer` and `frontend-implementer` check them (each only its own
+layer's patterns) before writing a service or component that fits one of those shapes, so
+neither reinvents the structure view by view or produces variants that `reviewer` would
+have to reject for duplication/design inconsistency. This was chosen —
 fixed templates read directly — over RAG/few-shot from prior views because views in this
 project are meant to be very different from each other; what repeats between them is
 structural *shape* (CRUD, cascade, filter), not content.
@@ -295,10 +359,10 @@ views/
 
 src/
   backend/
-    src/                            # implementer output — Bun + Express + TypeScript
+    src/                            # backend-implementer output — Bun + Express + TypeScript
     tests/                          # tdd-engineer output
   frontend/
-    src/                            # implementer output — Web Components + TypeScript
+    src/                            # frontend-implementer output — Web Components + TypeScript
     dist/                           # bun build output
     tests/                          # tdd-engineer output
     cypress/

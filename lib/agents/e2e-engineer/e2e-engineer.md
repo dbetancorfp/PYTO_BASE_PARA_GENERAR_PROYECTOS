@@ -127,6 +127,27 @@ Tell the user:
 
 ### Step 5 — Report to the Orchestrator
 
-If the Orchestrator invoked you inside Phase B, return a clear result (all `.cy.ts` green,
-or what failed) — the Orchestrator is the one who decides whether the view is complete or
-whether the cycle needs to restart with `implementer`.
+If the Orchestrator invoked you inside Phase B, return a clear result: `PASS` (all `.cy.ts`
+green), or `FAIL` with, for every failing spec, a short classification of which layer it
+implicates:
+
+- **backend** — the run's network log shows the backend returned a wrong status code or a
+  response body that doesn't match `api-contracts.md`'s shape for that endpoint.
+- **frontend** — the relevant network call(s) returned exactly what `api-contracts.md`
+  specifies, but the DOM (`data-element-id` element(s)) never reflected it, or the failing
+  assertion is a pure UI/DOM assertion with no relevant network call involved in that flow
+  step.
+- **both/ambiguous** — you can't attribute it confidently from the available evidence (e.g.
+  a timeout with no clear network log entry, or both a wrong response and wrong rendering
+  observed together). Say "both/ambiguous" explicitly rather than guessing a single layer.
+
+Report format:
+
+```
+FAIL
+- uc-NN-<name>.cy.ts: "<it() description>" — <one-line evidence>. Layer implicated: backend|frontend|both/ambiguous.
+```
+
+The Orchestrator is the one who decides whether the view is complete or whether the cycle
+needs to restart with `backend-implementer`, `frontend-implementer`, or both, per the
+layer(s) this report implicates — you don't invoke other agents directly.

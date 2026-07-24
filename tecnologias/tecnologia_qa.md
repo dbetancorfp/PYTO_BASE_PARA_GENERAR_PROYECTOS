@@ -41,7 +41,8 @@ Source: `package.json`, `.github/workflows/`, `sonar-project.properties`,
   Complements (doesn't replace) `reviewer`'s SOLID review — SonarCloud doesn't detect
   object-oriented design violations.
 - **SOLID** principles reviewed as an explicit checklist, audited by `reviewer`, which
-  rejects the code and makes the Orchestrator re-invoke `implementer` until it complies.
+  rejects the code and makes the Orchestrator re-invoke the implicated implementer(s)
+  (`backend-implementer` and/or `frontend-implementer`) until it complies.
 
 ## CI/CD
 
@@ -58,11 +59,12 @@ Source: `package.json`, `.github/workflows/`, `sonar-project.properties`,
 ## Agent-driven QA process (methodology, not a tool)
 
 - **TDD is mandatory** (`CLAUDE.md`): tests red before implementation — `tdd-engineer`
-  generates the tests from `functional-spec.json`'s acceptance criteria; `implementer`
-  writes the minimal code to turn them green.
+  generates the tests from `functional-spec.json`'s acceptance criteria; `backend-implementer` and `frontend-implementer` write the minimal code to turn them green, in
+  parallel, gated by `supervisor`.
 - **Explicit human review** during the design phase (view-designer → requirement-architect
   → tdd-engineer): the Orchestrator doesn't move from one agent to the next without user
   approval.
-- **Autonomous loop** during the build phase: `implementer` → tests → `reviewer` (SOLID +
-  SonarCloud, 100% coverage) → `e2e-engineer`, with an automatic cycle restart on any
-  failure (up to 10 cycles) — see `lib/agents/orchestrator/orchestrator.md`.
+- **Autonomous loop** during the build phase: `backend-implementer` + `frontend-implementer` (parallel) → `supervisor` (per-layer unit tests + integration/contract smoke
+  test between the two) → `reviewer` (SOLID + SonarCloud, 100% coverage) → `e2e-engineer`,
+  with an automatic, layer-targeted cycle restart on any failure (up to 10 cycles) — see
+  `lib/agents/orchestrator/orchestrator.md`.

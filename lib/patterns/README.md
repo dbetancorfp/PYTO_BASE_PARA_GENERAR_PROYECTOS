@@ -1,12 +1,13 @@
 # Pattern library
 
-Structural templates, not runnable code. `implementer` reads them before writing a
-component or service that fits one of these shapes, and adapts the placeholders
-(`<Entity>`, `<entity>`, `<field>`) to the concrete view — never copies them literally
-without adapting real types and fields.
+Structural templates, not runnable code. `backend-implementer` and `frontend-implementer`
+read them before writing a component or service that fits one of these shapes, and adapt
+the placeholders (`<Entity>`, `<entity>`, `<field>`) to the concrete view — never copy them
+literally without adapting real types and fields.
 
 **Why these exist**: they reduce variance between different views implemented by
-`implementer` in different sessions, and prevent SOLID/duplication violations that
+`backend-implementer`/`frontend-implementer` in different sessions, and prevent
+SOLID/duplication violations that
 `reviewer` would otherwise have to reject afterward — preventing the violation is cheaper
 than fixing it inside the Phase B loop.
 

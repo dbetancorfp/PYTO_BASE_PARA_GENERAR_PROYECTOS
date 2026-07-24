@@ -9,9 +9,10 @@ corresponding agent name), and manage the checkpoint (human or automatic) that f
 step.
 
 The user never invokes `/view-designer`, `/requirement-architect`, `/tdd-engineer`,
-`/implementer`, `/reviewer` or `/e2e-engineer` directly in normal use — they talk to you,
-and you decide. They can still invoke them manually if they want to skip the flow; in that
-case it isn't your responsibility.
+`/backend-implementer`, `/frontend-implementer`, `/supervisor`, `/reviewer` or
+`/e2e-engineer` directly in normal use — they talk to you, and you decide. They can still
+invoke them manually if they want to skip the flow; in that case it isn't your
+responsibility.
 
 ---
 
@@ -32,7 +33,8 @@ While working a view, keep track of where you are:
 ```
 phase: A | B
 current_step: view-designer | requirement-architect | tdd-engineer
-             | implementer | reviewer | e2e-engineer
+             | backend-implementer+frontend-implementer (parallel) | supervisor
+             | reviewer | e2e-engineer
 current_cycle: 1..10   (Phase B only)
 ```
 
@@ -72,32 +74,110 @@ Hard rule: **once the user says "implement", don't ask anything else until the v
 complete or you've exhausted the 10 cycles.** This phase is deliberately different from
 Phase A.
 
+### Parallel dispatch mechanism (backend-implementer + frontend-implementer)
+
+Every other step in this pipeline is a sequential persona switch: you adopt the next
+agent's role via the `Skill` tool, in this same session, one at a time. The
+backend-implementer + frontend-implementer step is the one exception — it must be genuine
+concurrency, because it exists specifically so the two halves of a view's code get written
+at the same time instead of one after the other.
+
+To do this, invoke the `Agent` tool **twice, in the same assistant turn** (two tool calls
+in one message, not two separate messages) — one call with `subagent_type:
+backend-implementer`, one with `subagent_type: frontend-implementer` (both defined in
+`.claude/agents/`). Each call's prompt tells the subagent which view it's working on. Two
+tool calls issued in the same turn run concurrently; issuing them one message at a time
+would make this sequential again and defeat the point.
+
+This is safe to run concurrently because the two subagents' write targets never overlap:
+`backend-implementer` writes only under `src/backend/src/`, `frontend-implementer` only
+under `src/frontend/src/`. Neither touches `views/<view>/*` (Phase A artifacts, read-only
+inputs here) or the other's tree. `api-contracts.md`, approved by the human before Phase B
+starts, is the fixed contract boundary between them — neither subagent edits it.
+
+Wait for both `Agent` calls to return before moving to the supervisor step. If one subagent
+errors out entirely (not a test failure, an actual tool/execution error), treat it as a
+FAIL for that layer only and route it the same way a supervisor-reported FAIL would be
+routed — don't fail the other layer's already-successful run.
+
+### The loop
+
 ```
 cycle = 1
 while cycle <= 10:
-    run implementer (writes or fixes code)
-    run the TDD tests generated in Phase A
-        if FAIL → run implementer again (same cycle, doesn't count as a new one)
-        if PASS → continue
-    run reviewer (SOLID + SonarCloud, 100% coverage gate)
-        if FAIL → cycle += 1; go back to the start of the loop (restart with implementer)
-        if PASS → continue
-    run e2e-engineer (generates and runs the Cypress tests)
-        if FAIL → cycle += 1; go back to the start of the loop (restart with implementer)
-        if PASS → VIEW COMPLETE — exit the loop and notify the user
+
+    # --- Step 1: parallel implementation ---
+    dispatch backend-implementer and frontend-implementer as two concurrent Agent-tool
+    calls in the same message (see "Parallel dispatch mechanism" above)
+    wait for both to return
+
+    # --- Step 2: supervisor gate (per-layer tests + integration smoke test,
+    #             cheap, doesn't consume a cycle) ---
+    loop:
+        run supervisor (via Skill)  # runs both unit suites AND a wire-level
+        # integration/contract smoke test between backend and frontend (see
+        # supervisor.md Step 3) — this is the first point where the two
+        # concurrently-written layers are actually checked against each other
+        read supervisor's "Layers implicated" line
+
+        if implicated == none:
+            break  # move to reviewer
+        if implicated == backend:
+            re-dispatch ONLY backend-implementer (Agent tool, single call)
+            continue loop  # re-run supervisor after the fix
+        if implicated == frontend:
+            re-dispatch ONLY frontend-implementer (Agent tool, single call)
+            continue loop
+        if implicated == both or cross-layer:
+            re-dispatch BOTH, concurrently (Agent tool, two calls, same message)
+            continue loop
+
+    # --- Step 3: reviewer (unified, unchanged scope, single pass) ---
+    run reviewer (SOLID + SonarCloud, 100% coverage gate, backend+frontend together)
+    if reviewer == FAIL:
+        cycle += 1
+        read review-report.md's "Layers implicated" line
+        if implicated == backend only:   re-dispatch ONLY backend-implementer
+        if implicated == frontend only:  re-dispatch ONLY frontend-implementer
+        if implicated == both/cross-layer/ambiguous: re-dispatch BOTH, concurrently
+        go back to Step 2 (supervisor gate) — don't skip straight back to reviewer;
+        confirm the targeted fix's own unit tests pass before spending another
+        reviewer pass on it
+        continue
+    # reviewer == PASS → proceed
+
+    # --- Step 4: e2e-engineer (unified, unchanged scope, single pass) ---
+    run e2e-engineer (Cypress)
+    if e2e == FAIL:
+        cycle += 1
+        read e2e-engineer's per-spec "Layer implicated" tags
+        if every failing spec implicates the same single layer: re-dispatch only that layer
+        else (mixed layers, or any spec tagged both/ambiguous): re-dispatch BOTH, concurrently
+        go back to Step 2 (supervisor gate)
+        continue
+    # e2e == PASS → VIEW COMPLETE, exit loop, notify the user
 
 if cycle > 10 without completing:
     notify the user of the failure, including what failed in the last attempt
-    (tests / reviewer / e2e) and don't keep trying without an explicit request to do so
+    (supervisor / reviewer / e2e) and which layer(s), and don't keep trying without an
+    explicit request to do so
 ```
 
 Important details:
 
-- Retrying tests after `implementer` within the same cycle **doesn't** consume one of the
-  10 cycles — the cycle counter only advances when the full cycle restarts due to a
-  `reviewer` or `e2e-engineer` failure.
-- When you restart the cycle, you go back to `implementer`, not to `view-designer` or the
-  other Phase A agents — Phase B never touches specs the human has already approved.
+- Re-running `supervisor` (and any single- or both-layer re-dispatch it triggers) within
+  the same cycle **doesn't** consume one of the 10 cycles — the cycle counter only advances
+  when `reviewer` or `e2e-engineer` fail.
+- A targeted redo from a `reviewer`/`e2e-engineer` failure always goes back through the
+  supervisor gate before the next `reviewer`/`e2e-engineer` pass — this avoids spending a
+  full unified review/e2e pass on a layer whose own unit tests don't even pass yet after
+  the fix.
+- When a cycle restarts, you go back to the implementer step, never to `view-designer` or
+  the other Phase A agents — Phase B never touches specs the human has already approved.
+- Prefer the narrowest possible redo at every branch: single layer when the failure is
+  attributable to one, both only when it's genuinely cross-layer or the report can't
+  attribute it. This is the same principle applied three times (supervisor gate, reviewer
+  gate, e2e gate), not three different rules.
 - The only message the user gets during all of Phase B, if everything goes well, is the
   final "view complete" notification. Don't interrupt them mid-loop.
 

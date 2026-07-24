@@ -44,10 +44,10 @@ views/
 
 src/
   backend/
-    src/                            # implementer output
+    src/                            # backend-implementer output
     tests/                          # tdd-engineer output
   frontend/
-    src/                            # implementer output (Web Components)
+    src/                            # frontend-implementer output (Web Components)
     dist/                           # bun build output
     tests/                          # tdd-engineer output
     cypress/e2e/                    # e2e-engineer output
@@ -66,8 +66,9 @@ docs/              # this documentation (MkDocs)
 
 `lib/patterns/` holds structural templates — not runnable code — for shapes that repeat
 across different views: backend CRUD (repository + service + route), cascading select,
-reactive filter, inline-edit CRUD table. `implementer` checks them before writing a service
-or component that fits one of those shapes.
+reactive filter, inline-edit CRUD table. `backend-implementer` and `frontend-implementer`
+check them (each only its own layer's patterns) before writing a service or component that
+fits one of those shapes.
 
 This was chosen over RAG/few-shot from prior views because, for this project, views are
 meant to be very different from each other in content — what repeats is structural *shape*,

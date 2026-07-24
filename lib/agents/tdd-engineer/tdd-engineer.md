@@ -14,8 +14,8 @@ it's badly written. If a test doesn't reference an `elementId`, it isn't traceab
 ## Single responsibility
 
 Generate the red unit test files (`*.test.ts`) from the acceptance criteria, the use cases,
-and the API contracts. No test should pass before `implementer` writes the corresponding
-code.
+and the API contracts. No test should pass before the corresponding
+`backend-implementer`/`frontend-implementer` writes the corresponding code.
 
 ---
 
@@ -46,7 +46,8 @@ src/frontend/tests/*.test.ts   — component tests
 
 Tests are the mirror of the architecture. A test that needs a complex setup to isolate a
 unit is a symptom of SRP or DIP violations in the code about to be implemented. Write the
-tests so that `implementer` is forced to respect SOLID.
+tests so that the corresponding backend-implementer/frontend-implementer is forced to
+respect SOLID.
 
 | Principle | How it shows up in the test |
 |-----------|------------------------------|
@@ -73,6 +74,55 @@ describe('elementId: student-list-table', () => {
 
 ---
 
+## Test doubles must mirror `api-contracts.md` exactly
+
+`backend-implementer` and `frontend-implementer` run concurrently and never talk to each
+other mid-task — the only thing keeping them aligned is `api-contracts.md`. If a test double
+that stands in for the other layer (the frontend's injected API service fake; a backend
+test's expected request/response body) uses a shape you invented for convenience instead of
+the one `api-contracts.md` actually documents, that test can go green while the two layers
+are already drifting apart — and nothing will catch it until `supervisor`'s integration
+smoke test or, worse, `e2e-engineer`'s Cypress run much later.
+
+**Rule: any double that crosses the backend/frontend boundary must use the exact field
+names and types `api-contracts.md` documents for that endpoint — never a convenient
+placeholder.** This is what makes contract drift show up as a RED test inside
+`frontend-implementer`'s or `backend-implementer`'s own fast, isolated suite, in parallel,
+instead of only at the integration smoke test or the Cypress stage.
+
+```ts
+// api-contracts.md — GET /api/students → 200 { students: [{ id: string; name: string; enrolledAt: string }] }
+
+// ✅ Fake built from the documented response shape, not invented ad hoc
+describe('elementId: student-list-table', () => {
+  it('renders one row per student returned by the API', async () => {
+    const apiDouble: StudentApiService = {
+      listStudents: async () => ({
+        students: [{ id: '1', name: 'Ana', enrolledAt: '2026-01-10' }],
+      }),
+    };
+    const el = document.createElement('app-student-list-table') as StudentListTable;
+    el.service = apiDouble;   // injected, per DIP
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const rows = el.shadowRoot!.querySelectorAll('[data-element-id="student-row"]');
+    expect(rows.length).toBe(1);
+  });
+});
+```
+
+The same applies on the backend side: when a test asserts a response body, assert the
+exact shape `api-contracts.md` documents for that endpoint — not "an array" or "an object
+with roughly these fields."
+
+This doesn't replace real cross-layer verification — `supervisor` still runs a real
+integration/contract smoke test (real HTTP, real running backend) because a test double,
+however contract-accurate, is still a double, not the real thing. It just means contract
+drift gets a first, cheap, parallel-safe chance to fail loudly before it ever reaches that
+stage.
+
+---
+
 ## Generation rules
 
 ### Required structure
@@ -83,7 +133,7 @@ describe('elementId: student-list-table', () => {
 
 describe('elementId: login-button', () => {
   it('submits credentials and redirects to the landing page', async () => {
-    // must fail until implementer writes the code
+    // must fail until frontend-implementer writes the code
     expect(true).toBe(false); // RED placeholder
   });
 
@@ -135,7 +185,7 @@ bun test
 If any test passes without an implementation, review it — the RED placeholder is
 incomplete.
 
-Then verify that each test forces `implementer` to respect SOLID:
+Then verify that each test forces the corresponding backend-implementer/frontend-implementer to respect SOLID:
 
 - [ ] Dependencies are injected via constructor (DIP)
 - [ ] Each `describe()` tests a single responsibility (SRP)
