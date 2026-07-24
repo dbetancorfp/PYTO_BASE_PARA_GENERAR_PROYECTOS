@@ -93,6 +93,34 @@ Phase B — autonomous, up to 10 full cycles, no stopping
     → after 10 cycles without converging → Orchestrator reports the failure
 ```
 
+```mermaid
+flowchart TD
+    Start(["you: read views/&lt;view&gt;/description_&lt;view&gt;.md, tables: [...]"]) --> VD
+
+    subgraph PhaseA["Phase A — step by step, human review at every point"]
+        VD["view-designer<br/>→ ui-spec.json + functional-spec.json"] --> RVA{"human review"}
+        RVA -- redo --> VD
+        RVA -- continue --> RA["requirement-architect<br/>→ use-cases.md + api-contracts.md<br/>(+ schema-changes.sql if needed)"]
+        RA --> RVB{"human review"}
+        RVB -- redo --> RA
+        RVB -- continue --> TDD["tdd-engineer<br/>→ TDD tests (red)"]
+        TDD --> RVC{"human review"}
+        RVC -- redo --> TDD
+        RVC -- "implement" --> Impl
+    end
+
+    subgraph PhaseB["Phase B — autonomous, up to 10 full cycles, no stopping"]
+        Impl["implementer<br/>writes/fixes code"] --> UT{"TDD tests"}
+        UT -- fail --> Impl
+        UT -- pass --> Rev{"reviewer<br/>SOLID + SonarCloud<br/>100% coverage gate"}
+        Rev -- "fail (+1 cycle)" --> Impl
+        Rev -- pass --> E2E{"e2e-engineer<br/>Cypress"}
+        E2E -- "fail (+1 cycle)" --> Impl
+        E2E -- pass --> Done(["Orchestrator: 'view complete'"])
+        Impl -. "10 cycles, no convergence" .-> Fail(["Orchestrator reports failure"])
+    end
+```
+
 There is no visual mockup and no external element numbering. Every element of a view gets
 an **`elementId`** (kebab-case string) assigned by `view-designer` — this is the identifier
 that runs through the rest of the pipeline: `ui-spec.json → functional-spec.json →
