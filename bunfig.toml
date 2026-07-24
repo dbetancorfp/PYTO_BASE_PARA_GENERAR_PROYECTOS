@@ -1,2 +1,3 @@
-[test]
-preload = ["./src/frontend/tests/dom-setup.ts", "./src/backend/tests/setup.ts"]
+# No [test].preload yet — src/frontend and src/backend don't exist (no view implemented
+# yet). Add a [test] section with preload = ["./src/frontend/tests/dom-setup.ts",
+# "./src/backend/tests/setup.ts"] once implementer creates those files for the first view.
