@@ -137,12 +137,16 @@ one that already exists, another view's e2e-engineer pass may already have set i
    and `build` (runs both) to `package.json`.
 3. **Bootstrap entry point** — if `src/frontend/src/main.ts` / `src/frontend/index.html`
    don't exist: create a `main.ts` that imports the view's custom element (registering it)
-   and wires its injected service property to the real concrete client implementation (the
-   one `frontend-implementer` wrote for production use, not a test fake); create a minimal
-   `index.html` loading `<script type="module" src="/dist/main.js">` and containing the
-   view's custom element tag. If they already exist (a prior view created them), only
-   extend `main.ts` to also register *this* view's custom element — don't replace what's
-   there.
+   and wires its injected service property to a real concrete client implementation.
+   `frontend-implementer` only writes the *interface* the component depends on (DIP) —
+   nothing else in the pipeline needs a real network call, since every unit test injects a
+   fake — so if no concrete implementation exists yet (check first; a prior view may have
+   already written one for the same service), create it yourself here (e.g.
+   `http-<service>-service.ts`, a thin `fetch` wrapper against the endpoint(s)
+   `api-contracts.md` documents). Create a minimal `index.html` loading `<script
+   type="module" src="/dist/main.js">` and containing the view's custom element tag. If
+   `main.ts`/`index.html` already exist (a prior view created them), only extend `main.ts` to
+   also register *this* view's custom element — don't replace what's there.
 4. **Static serving + this view's route** — check `src/backend/src/app.ts` already serves
    `/dist` (`express.static`) and has a `GET <this view's ui-spec.json route>` handler
    returning `index.html`. If the static mount is missing, add it once. If only this view's

@@ -39,8 +39,42 @@ there's no automatic gate to check before starting.
 src/backend/tests/*.test.ts               — API and domain tests
 src/backend/tests/helpers/fake-sql.ts     — shared Bun.SQL double (create once, reuse across views)
 src/backend/tests/pg-<entity>.repository.test.ts  — one per new Postgres repository this view introduces
+src/backend/tests/setup.ts                — shared preload, create once, reuse across views (see below)
 src/frontend/tests/*.test.ts              — component tests
+src/frontend/tests/dom-setup.ts           — shared preload, create once, reuse across views (happy-dom registration)
 ```
+
+---
+
+## `src/backend/tests/setup.ts` must disable happy-dom's same-origin policy
+
+`bunfig.toml`'s preload list always runs `src/frontend/tests/dom-setup.ts` (registers
+happy-dom globally) before `src/backend/tests/setup.ts`, for every `bun test` invocation —
+including a backend-only run. Happy-dom's registration replaces the global `fetch` with its
+own, same-origin policy included. Any backend test that makes a real HTTP request against a
+locally-listening server on a random port (the pattern this project uses for API/integration
+tests — see the "API tests use Bun's native `fetch`" rule above) gets that request blocked
+as cross-origin, failing with a `NetworkError`, not an assertion mismatch — this has nothing
+to do with the implementation under test.
+
+This has recurred across every run of this view so far because the fix was only ever
+patched into `setup.ts` ad hoc, never captured here — so it was lost the first time the view
+got reset for a clean re-run. It's mandatory, not optional: the first time you create (or
+recreate) `src/backend/tests/setup.ts`, include this:
+
+```ts
+interface HappyDomGlobal {
+  settings: { fetch: { disableSameOriginPolicy: boolean } };
+}
+
+const happyDom = (globalThis as { happyDOM?: HappyDomGlobal }).happyDOM;
+if (happyDom) {
+  happyDom.settings.fetch.disableSameOriginPolicy = true;
+}
+```
+
+This only affects `fetch`'s CORS enforcement inside this test process — it changes nothing
+about what backend routes/services do at runtime.
 
 ---
 
