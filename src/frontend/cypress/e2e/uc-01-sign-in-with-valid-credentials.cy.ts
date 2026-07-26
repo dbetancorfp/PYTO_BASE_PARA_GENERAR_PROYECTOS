@@ -16,6 +16,13 @@ describe('UC-01: Sign in with valid credentials', () => {
     cy.url().should('include', '/dashboard');
   });
 
+  it('loads the shared Tailwind stylesheet into login-button\'s Shadow DOM', () => {
+    // Proves attachSharedStyles actually fetched and adopted /dist/tailwind.css into the
+    // component's shadow root — a regression here would ship a silently unstyled view,
+    // as happened once before (see e2e-engineer.md's "Style application proof").
+    cy.get('[data-element-id="login-button"]').should('have.css', 'background-color', 'rgb(37, 99, 235)');
+  });
+
   it('shows "Incorrect email or password" and resets login-button after a wrong-password response', () => {
     cy.get('[data-element-id="email-input"]').type('e2e-valid-user@example.com');
     cy.get('[data-element-id="password-input"]').type('TheWrongPassword1');

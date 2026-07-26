@@ -82,6 +82,18 @@ describe('UC-01: <use case title>', () => {
 - **Main flow** — the UC's complete happy path
 - **At least one critical alternative flow** — the most likely or highest-impact one
 - **Acceptance criterion** — each `it()` verifies one criterion from `functional-spec.json`
+- **Style application proof (at least once per view)** — shared-style delivery into a
+  component's Shadow DOM (`attachSharedStyles`/`shadow-styles.ts`, see
+  `tecnologias/tecnologia_ux.md`) is real browser behavior no unit test can fully prove: it
+  depends on the built Tailwind file actually being fetched and adopted at runtime, which
+  only exists once you've run Step 0. Reviewer runs before you and can't verify it either
+  (see `reviewer.md`'s "Deferred to e2e-engineer" case). Concretely, this closed a real gap:
+  the Login view shipped with 100% unit coverage and a green Cypress run while its shared
+  stylesheet silently wasn't loading, because no test at any layer asserted a real computed
+  style. Add at least one `.should('have.css', '<property>', '<value>')` (or equivalent
+  computed-style assertion) on a `data-element-id` element that a Tailwind class visibly
+  affects, in this view's main-flow test, so a regression in the fetch/adopt pipeline fails
+  loudly instead of shipping silent and unstyled.
 
 ### Selectors
 
@@ -175,6 +187,8 @@ Before saving, check:
 - Every UC has at least one `.cy.ts` file
 - No `it()` is empty or contains only `cy.visit()`
 - Every selector uses `data-element-id`
+- At least one test in the view asserts a real computed style (see "Style application
+  proof" above) — not just DOM presence or behavior
 
 ### Step 4 — Confirm
 
