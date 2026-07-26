@@ -40,6 +40,26 @@ Source: `package.json`, `.github/workflows/`, `sonar-project.properties`,
 - No CI workflow for Cypress (explicit in `CLAUDE.md`): e2e only runs locally, unlike unit
   tests, which do run in GitHub Actions.
 
+### Runbook — backend port stuck after a killed e2e run
+
+Seen during the Login e2e run: `start:e2e`'s server on port 3000 stayed listening after a
+kill attempt and immediately respawned when a new one was started, blocking every later
+`bun run e2e` on that port until the run was moved to 3050 instead.
+
+1. Find what's actually listening: `lsof -i :3000` (or `ss -ltnp | grep 3000`) — get the real
+   PID, don't assume it's the process you last started.
+2. Kill that PID directly: `kill -9 <pid>`. If it respawns immediately, something else
+   (a watcher, a leftover `start-server-and-test` supervisor, a duplicate instance from an
+   earlier run) is restarting it — find and kill *that* parent process too, not just the
+   child; killing the child alone loops forever.
+3. Confirm the port is actually free before retrying: `lsof -i :3000 || echo free`. Don't
+   just re-run `bun run e2e` and assume the kill worked.
+4. If the port still won't release (rare — e.g. the OS holding it in `TIME_WAIT`), don't keep
+   fighting it: run on a different port for that session (`PORT=3050 bun run start:e2e`,
+   matching `cypress.config.ts`'s `baseUrl`) instead of blocking on the original one.
+5. This is dev-environment friction, not a pipeline defect — no agent role should try to
+   "fix" a stuck port; it's a manual step same as any other local process hygiene.
+
 ## Static analysis / code quality
 
 - **Strict TypeScript** via `tsc --noEmit` (`type-check` script in `package.json`) — a type
