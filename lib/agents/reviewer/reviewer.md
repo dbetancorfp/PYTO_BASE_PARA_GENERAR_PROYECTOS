@@ -110,7 +110,7 @@ implemented by a class that only needs `findAll`.
 | Check | Criterion |
 |-------|-----------|
 | **Explicit types** | No `any`, no unnarrowed `unknown`, no implicit returns |
-| **Dead code** | No unused imports, no declared-and-unused variables, no code unreached by any test (directly hurts coverage) |
+| **Dead code** | No unused imports, no declared-and-unused variables, no code unreached by any test (directly hurts coverage) — but see Step 3b before recommending deletion: a branch a real user/system input would reach in production is not dead code just because today's tests don't reach it |
 | **Naming** | Descriptive names; no cryptic abbreviations |
 | **Tests enforce SOLID** | Tests inject dependencies via constructor, use interfaces as doubles |
 | **Coverage** | 100% of lines/branches/functions in `src/` — see Step 4b |
@@ -177,6 +177,10 @@ Create `views/<view>/review-report.md` with this structure:
 ## Criteria without verifiable coverage
 | Criterion | Reason |
 |-----------|--------|
+
+## Deferred to e2e-engineer (only if applicable — see Step 3b)
+| File / branch | Why it can't be unit-tested here | What to verify once real infra exists |
+|---------------|-----------------------------------|-----------------------------------------|
 ```
 
 ### Step 3b — Determine layers implicated
@@ -206,6 +210,23 @@ Derive `Layers implicated` mechanically from what you already found in Steps 2-3
   `fake-sql.ts`-backed unit test — `tdd-engineer` should have generated one (see
   `tdd-engineer.md`'s "Postgres repositories always get their own unit test"); if it
   didn't, this is how the gap gets closed instead of blocking the loop indefinitely.
+- **Before recommending an uncovered branch be simplified away as dead code, ask: would a
+  test double/mock exercise it and prove real behavior?** Code that calls an external effect
+  (`fetch`, timers, storage, a browser API) has a real success path that a unit test can hit
+  by stubbing that effect — a login-first Login review pass once told `frontend-implementer`
+  to delete a `fetch`-then-`adoptedStyleSheets` success branch as "unreachable" instead of
+  recognizing it only lacked a stubbed-fetch test; the branch was real, shipped later, and
+  had to be reintroduced outside the pipeline. If a mock/stub test could exercise it, this is
+  `requires-tdd-engineer` territory (the coverage gap is a missing test, not leftover code),
+  not a case for the implementer to delete functionality. Only call something dead code when
+  no production input or system integration — real or mocked — would ever reach it.
+- If the branch genuinely cannot be exercised by any unit test because it depends on
+  infrastructure that doesn't exist yet at this point in the pipeline (e.g. a real build
+  artifact `e2e-engineer` hasn't produced yet, which runs *after* you) — don't recommend
+  deletion either. Say so explicitly in `review-report.md` under a **Deferred to
+  e2e-engineer** heading (branch, file, why it can't be unit-tested here, what `e2e-engineer`
+  or a human should verify once the real infra exists) and let the pass stand; the follow-up
+  verification is `e2e-engineer`'s or the human's job, not a reason to strip working code.
 - If genuinely unclear, say so — never guess a single layer to look more precise than the
   evidence supports.
 
@@ -234,9 +255,12 @@ If it's ❌:
    `backend-implementer`'s or `frontend-implementer`'s side (whichever `review-report.md`
    implicates) within this loop — if it's coverage, remember the implementer should only
    implement what the tests require (see `backend-implementer.md` / `frontend-implementer.md`), so a coverage gap usually means there's leftover code to remove, not a missing
-   test. **Exception**: if you determined `Layers implicated: requires-tdd-engineer` in
-   Step 3b (real, necessary code with no test at all — not leftover), don't route it to
-   either implementer; that's what the exception exists for.
+   test. **Before telling an implementer to remove an uncovered branch, apply Step 3b's
+   mockability check** — a branch reachable via a stubbed external effect is a missing test,
+   not leftover code. **Exception**: if you determined `Layers implicated:
+   requires-tdd-engineer` in Step 3b (real, necessary code with no test at all — not
+   leftover, including the mockable-external-effect case), don't route it to either
+   implementer; that's what the exception exists for.
 
 ### Step 4b — Open a GitHub Issue if the result is FAIL
 
