@@ -2,21 +2,43 @@
 // component's open Shadow DOM via `adoptedStyleSheets` — a global <link>/<style> in
 // index.html never reaches a shadow root. See tecnologias/tecnologia_ux.md.
 //
-// No build/serve pipeline exists yet at this point of the view pipeline: there's no
-// `bun run build` script, no Tailwind config, and nothing served at `/dist/tailwind.css`
-// (that's `e2e-engineer`'s job, later — see views/login/review-report.md). Fetching,
-// parsing and adopting that stylesheet is therefore not implemented yet, rather than
-// implemented but untested: `attachSharedStyles` is an explicit no-op until that pipeline
-// exists. Components still render and behave correctly, they just render unstyled in the
-// meantime, exactly like any other missing-asset case. Every component still calls
-// `attachSharedStyles` from `connectedCallback` (see CLAUDE.md's "Visual style" rule), so
-// no call site needs to change once the real fetch-and-adopt mechanism is reintroduced.
+// Fetched once, lazily, and shared across every component instance via this module-level
+// promise — components never duplicate the parse. If the fetch fails (asset missing,
+// network error), components still render and behave correctly, just unstyled, exactly
+// like any other missing-asset case.
+let sharedStylesheetPromise: Promise<CSSStyleSheet | null> | null = null;
+
+function loadSharedStylesheet(): Promise<CSSStyleSheet | null> {
+  if (!sharedStylesheetPromise) {
+    sharedStylesheetPromise = fetch('/dist/tailwind.css')
+      .then((response) => (response.ok ? response.text() : null))
+      .then((cssText) => {
+        if (!cssText) return null;
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(cssText);
+        return sheet;
+      })
+      .catch(() => null);
+  }
+  return sharedStylesheetPromise;
+}
 
 /**
- * Adopts the shared Tailwind stylesheet into `shadowRoot`, once a real build/serve
- * pipeline exists to fetch it from. Safe to call from every component's
- * `connectedCallback`, before the first `_render()`.
+ * Adopts the shared Tailwind stylesheet into `shadowRoot`. Safe to call from every
+ * component's `connectedCallback`, before the first `_render()` — the sheet is adopted
+ * asynchronously, once fetched, without requiring the caller to await anything.
  */
-export function attachSharedStyles(_shadowRoot: ShadowRoot): void {
-  // No-op for now — see the module comment above.
+export function attachSharedStyles(shadowRoot: ShadowRoot): void {
+  void loadSharedStylesheet().then((sheet) => {
+    if (sheet) {
+      shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, sheet];
+    }
+  });
+}
+
+// Test-only: Bun shares one module registry across every test file in a run, so the
+// module-level cache above would otherwise leak between files that each stub `fetch`
+// differently. Not called from any production code path.
+export function __resetSharedStylesheetCacheForTests(): void {
+  sharedStylesheetPromise = null;
 }
