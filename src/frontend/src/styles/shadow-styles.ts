@@ -48,7 +48,7 @@ export function attachSharedStyles(shadowRoot: ShadowRoot): void {
 
 // Test-only: Bun shares one module registry across every test file in a run, so this
 // module-level cache would otherwise leak between files that each stub `fetch` differently
-// (including every LoginView test, which calls attachSharedStyles indirectly via
+// (including every component test that calls attachSharedStyles indirectly via
 // connectedCallback). Not called from any production code path.
 export function __resetSharedStyleSheetCacheForTests(): void {
   sharedStyleSheetPromise = null;
