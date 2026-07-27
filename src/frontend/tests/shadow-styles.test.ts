@@ -1,8 +1,7 @@
 // elementId: (shared frontend infrastructure — attachSharedStyles, no single elementId;
 // backs every component's Shadow DOM styling, see tecnologias/tecnologia_ux.md)
 //
-// Closes reviewer's cycle-1 requires-tdd-engineer gap (views/login/review-report.md): the
-// fetch-succeeds path had zero test coverage even though it's real, working code.
+// The fetch-succeeds path had zero test coverage even though it's real, working code.
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import {
   attachSharedStyles,

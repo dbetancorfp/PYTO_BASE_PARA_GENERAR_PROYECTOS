@@ -32,7 +32,7 @@ See [Pipeline](pipeline.md) for the two phases and the agents involved, and
 ## Project status
 
 - ✅ Pipeline skeleton (agents, schemas, folder structure)
-- ⏳ `DATABASE_URL` pending configuration — see `.env.example`
+- ✅ `DATABASE_URL` configured — see `.env.example`
 - ⏳ RAG (`knowledge_base` with pgvector + embeddings) — designed, not built yet
 - ⏳ No view generated yet
 

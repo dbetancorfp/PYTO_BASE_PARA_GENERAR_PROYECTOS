@@ -7,7 +7,7 @@
 | Agent execution | Claude Code — slash commands point to a role file in `lib/agents/*/*.md` |
 | Coordination | Orchestrator agent (`lib/agents/orchestrator/`) |
 | Artifact storage | Local filesystem (`views/`, `src/`) |
-| Application database | PostgreSQL 16, real and live — `DATABASE_URL` pending configuration |
+| Application database | PostgreSQL 16, real and live — `DATABASE_URL` configured |
 | Postgres client | `Bun.SQL` native driver — no `pg`/node-postgres, no ORM |
 | Backend | Bun + Express 5 + TypeScript |
 | Pipeline artifact validation | Zod (`lib/schemas/`) |
