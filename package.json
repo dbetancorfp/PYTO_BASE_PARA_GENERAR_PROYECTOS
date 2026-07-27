@@ -4,11 +4,7 @@
   "type": "module",
   "scripts": {
     "type-check": "tsc --noEmit",
-    "test": "bun test --max-workers=1",
-    "build:frontend:js": "bun build src/frontend/src/main.ts --outdir src/frontend/dist --target browser",
-    "build:frontend:css": "tailwindcss -i src/frontend/src/styles/tailwind-input.css -o src/frontend/dist/tailwind.css --minify",
-    "build": "bun run build:frontend:js && bun run build:frontend:css",
-    "start:e2e": "DATA_BACKEND=postgres PORT=3050 bun run src/backend/src/index.ts"
+    "test": "bun test --max-workers=1"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
