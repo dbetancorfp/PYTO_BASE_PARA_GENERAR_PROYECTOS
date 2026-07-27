@@ -28,6 +28,66 @@ Phase B — autonomous, up to 10 full cycles, no stopping
     → after 10 cycles without converging → Orchestrator reports the failure
 ```
 
+```mermaid
+flowchart TD
+    Start(["you: read views/&lt;view&gt;/description_&lt;view&gt;.md, tables: [...]"]) --> VD
+
+    subgraph PhaseA["Phase A — step by step, human review at every point"]
+        VD["view-designer<br/>→ ui-spec.json + functional-spec.json"] --> RVA{"human review"}
+        RVA -- redo --> VD
+        RVA -- continue --> RA["requirement-architect<br/>→ use-cases.md + api-contracts.md<br/>(+ schema-changes.sql if needed)"]
+        RA --> RVB{"human review"}
+        RVB -- redo --> RA
+        RVB -- continue --> TDD["tdd-engineer<br/>→ TDD tests (red)"]
+        TDD --> RVC{"human review"}
+        RVC -- redo --> TDD
+        RVC -- "implement" --> BI
+        RVC -- "implement" --> FI
+    end
+
+    subgraph PhaseB["Phase B — autonomous, up to 10 full cycles, no stopping"]
+        direction TB
+
+        subgraph Step1["Step 1 — parallel implementation (concurrent subagents)"]
+            direction LR
+            BI["backend-implementer"]
+            FI["frontend-implementer"]
+        end
+
+        subgraph Step2["Step 2 — supervisor: TEST gate (redo costs no cycle)"]
+            Sup{"bun test backend/frontend<br/>+ integration/contract<br/>smoke test between them"}
+        end
+
+        subgraph Step3["Step 3 — reviewer: SOLID + SONAR gate (unified pass, fail costs +1 cycle)"]
+            Rev{"SOLID audit +<br/>SonarCloud Quality Gate<br/>100% coverage"}
+        end
+
+        subgraph Step4["Step 4 — e2e-engineer: CYPRESS gate (unified pass, fail costs +1 cycle)"]
+            E2E{"Cypress specs<br/>per use case"}
+        end
+
+        BI --> Sup
+        FI --> Sup
+        Sup -- "Layers implicated: backend → redo backend only" --> BI
+        Sup -- "Layers implicated: frontend → redo frontend only" --> FI
+        Sup -- "Layers implicated: both/cross-layer → redo both" --> BI
+        Sup -- "Layers implicated: both/cross-layer → redo both" --> FI
+        Sup -- "Layers implicated: none" --> Rev
+
+        Rev -- "FAIL, backend implicated (+1 cycle)<br/>redo backend, then back to TEST gate" --> BI
+        Rev -- "FAIL, frontend implicated (+1 cycle)<br/>redo frontend, then back to TEST gate" --> FI
+        Rev -- "FAIL, cross-layer/ambiguous (+1 cycle)<br/>redo both, then back to TEST gate" --> BI
+        Rev -- "FAIL, cross-layer/ambiguous (+1 cycle)<br/>redo both, then back to TEST gate" --> FI
+        Rev -- PASS --> E2E
+
+        E2E -- "FAIL, layer implicated (+1 cycle)<br/>redo layer(s), then back to TEST gate" --> BI
+        E2E -- "FAIL, layer implicated (+1 cycle)<br/>redo layer(s), then back to TEST gate" --> FI
+        E2E -- PASS --> Done(["Orchestrator: 'view complete'"])
+
+        Sup -. "10 cycles, no convergence" .-> Fail(["Orchestrator reports failure"])
+    end
+```
+
 There is no visual mockup and no external element numbering. Every element of a view gets
 an **`elementId`** (kebab-case string) assigned by `view-designer` — this is the identifier
 that runs through the rest of the pipeline:
