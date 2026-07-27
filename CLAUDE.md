@@ -200,7 +200,7 @@ use-cases.md → tests → code`.
 | `reviewer` | SOLID + SonarCloud audit (gate: 100% coverage), unified across both layers | Code + tests | `views/<view>/review-report.md` |
 | `e2e-engineer` | Cypress tests per use case; also creates whatever runnable-app infrastructure (build, static serving, Cypress config, e2e seed data) is still missing, once, idempotently | `use-cases.md` + specs | `src/frontend/cypress/e2e/*.cy.ts` (+ infra files on first use — see `e2e-engineer.md` Step 0) |
 | `ci-setup` *(on-demand)* | GitHub Actions workflows | `CLAUDE.md` + `package.json` | `.github/workflows/*.yml` |
-| `doc-reviewer` *(on-demand)* | Audits the consistency of all documentation | Everything above | Report (no writes) |
+| `doc-reviewer` *(on-demand)* | Audits the consistency of all documentation against the repo's real state | Everything above | Report (no writes) |
 
 Each agent is a role file (`lib/agents/<agent>/<agent>.md`) that Claude Code reads and runs
 directly in-session, triggered by its slash command (`.claude/commands/<agent>.md`, a
