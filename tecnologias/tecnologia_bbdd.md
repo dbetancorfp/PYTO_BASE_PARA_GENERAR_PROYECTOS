@@ -57,8 +57,10 @@ Source: `src/backend/src/db/`, `src/backend/src/repositories/`, `views/<view>/sc
 
 ## Credential security
 
-- Passwords: **`Bun.password`** (bcrypt, `cost: 10`) — hashing and verification happen in
-  the application layer (`AuthService`), not in SQL.
+- Passwords: **`Bun.password`**, called with no explicit `algorithm` option — this defaults
+  to **argon2id** (Bun's own default, not bcrypt), verified automatically by
+  `Bun.password.verify` regardless of which algorithm produced the hash. Hashing and
+  verification happen in the application layer (`AuthService`), not in SQL.
 - Account lockout after a configurable number of failed attempts, tracked at the row level
   (columns like `failed_login_attempts`/`account_locked` on whatever user entity each
   project defines) — logic lives in `AuthService`, not in triggers.

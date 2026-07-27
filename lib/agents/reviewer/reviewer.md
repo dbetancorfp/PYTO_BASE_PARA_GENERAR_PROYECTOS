@@ -120,6 +120,20 @@ implemented by a class that only needs `findAll`.
 
 ## Execution instructions
 
+### Step 1a — Adjudicate every note `supervisor` flagged
+
+`supervisor` only writes a report, never a file (see `supervisor.md`) — the Orchestrator
+carries its verdict, including any "non-blocking observation, not a supervisor concern"
+note, into your dispatch. Those notes exist because `supervisor`'s own gate is narrow
+(tests + contract shape) and explicitly defers spec-adherence questions to you — a note
+dropped here is dropped everywhere, permanently, since no later agent re-reads
+`supervisor`'s output. Treat every such note as a mandatory checklist item: either resolve
+it (fix required, tagged with a layer) or explicitly record it as accepted-as-is with a
+one-line reason, under a **Supervisor notes adjudicated** heading in `review-report.md`.
+Never let one simply not appear in the report — a spec/implementation mismatch (e.g. a
+hashing algorithm, a config default) that nobody ever accepted or rejected is exactly as
+bad as one nobody found.
+
 ### Step 1 — Audit the tests
 
 For every file in `*/tests/*.test.ts`:
@@ -155,12 +169,18 @@ Create `views/<view>/review-report.md` with this structure:
 
 ## Layers implicated: none | backend | frontend | both | cross-layer | requires-tdd-engineer
 
+## Also implicated (optional — see Step 3b): backend | frontend | none
+
 ## SOLID violations found
 
 ### [file.ts] — Principle [X] — Layer: backend|frontend
 - **Line**: N
 - **Violation**: description
 - **Fix required**: description of the change
+
+## Supervisor notes adjudicated
+| Note | Resolution |
+|------|------------|
 
 ## SonarCloud Quality Gate
 | Metric | Threshold | Backend | Frontend | Result |
@@ -229,6 +249,16 @@ Derive `Layers implicated` mechanically from what you already found in Steps 2-3
   verification is `e2e-engineer`'s or the human's job, not a reason to strip working code.
 - If genuinely unclear, say so — never guess a single layer to look more precise than the
   evidence supports.
+- **`Also implicated` — only when `Layers implicated: requires-tdd-engineer`.** If, in the
+  same pass, you also found a separate, already-concrete, non-blocking issue squarely owned
+  by one layer (e.g. a dead/unused export, per the Dead code check above) that you'd
+  otherwise defer to "next touch of that file", name it here instead of only mentioning it
+  in prose. This lets the Orchestrator fix both in the same Phase B cycle — re-invoking
+  `tdd-engineer` for the blocking gap and that layer's implementer for the secondary one, in
+  parallel — instead of spending a whole extra cycle later re-discovering a fix you'd
+  already fully specified. Only use this for a finding precise enough to hand an implementer
+  with no further investigation (exact file, exact change) — never a vague "look into X",
+  and never as a way to smuggle a blocking finding out of `Layers implicated` itself.
 
 ### Step 4 — Verify the SonarCloud Quality Gate
 

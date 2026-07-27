@@ -259,6 +259,21 @@ bun test
 If any test passes without an implementation, review it — the RED placeholder is
 incomplete.
 
+### Step 5b — Type-check the test files themselves
+
+```bash
+bun run type-check
+```
+
+`bun test` never type-checks — a test file with a type error (a narrowed-`null` read
+through a nested closure, a wrong callback signature passed to a Promise executor, etc.) can
+still report a clean RED/GREEN result, because the error only surfaces under `tsc`. Left
+uncaught here, it surfaces instead as a `reviewer` FAIL after Phase B implementation is
+already done, costing a full `requires-tdd-engineer` cycle for a defect that was never in
+the implementation at all — it was in the test file you just wrote. Fix every type error in
+your own `*.test.ts` files before declaring RED; 0 errors is mandatory, same bar `reviewer`
+enforces later.
+
 Then verify that each test forces the corresponding backend-implementer/frontend-implementer to respect SOLID:
 
 - [ ] Dependencies are injected via constructor (DIP)

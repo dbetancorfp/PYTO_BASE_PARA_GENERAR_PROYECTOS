@@ -153,6 +153,17 @@ while cycle <= 10:
             # and not backend/frontend); go straight to the supervisor gate and let the new
             # test's own result decide. If it unexpectedly fails, supervisor's normal
             # per-layer routing handles that redo — no special case needed here.
+            read review-report.md's "Also implicated" line
+            if also_implicated != none:
+                # a second, already-concrete fix reviewer fully specified in the same pass
+                # (see reviewer.md Step 3b) — fix it now, in this same cycle, instead of
+                # waiting for a second reviewer FAIL to rediscover it next cycle. tdd-engineer
+                # is Skill-based (sequential persona, not a concurrent subagent — see "One
+                # exception" in CLAUDE.md's Pipeline), so this can't reuse the backend+frontend
+                # concurrent-dispatch mechanism: run it after the tdd-engineer Skill call
+                # returns, as a normal single Agent-tool call targeting exactly the fix
+                # review-report.md names, still before Step 2 (supervisor gate) — no extra
+                # cycle spent either way
         go back to Step 2 (supervisor gate) — don't skip straight back to reviewer;
         confirm the targeted fix's own unit tests pass before spending another
         reviewer pass on it
