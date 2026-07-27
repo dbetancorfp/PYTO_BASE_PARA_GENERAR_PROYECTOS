@@ -50,8 +50,8 @@ Source: `src/backend/src/db/`, `src/backend/src/repositories/`, `views/<view>/sc
   Routes and services only know the interfaces, never the concrete `Pg*`/`InMemory*`
   classes.
 - Backend selection at runtime via environment variables (`src/backend/src/db/env.ts`):
-  `DATA_BACKEND=memory|postgres` + `DATABASE_URL` (required if `postgres`, **still pending
-  configuration in this project** — see `.env.example`) + `PORT`.
+  `DATA_BACKEND=memory|postgres` + `DATABASE_URL` (required if `postgres`, **already
+  configured in this project** — see `.env.example`) + `PORT`.
 - User sessions are **not** persisted to the database: they live in an in-process `Map`
   (`InMemorySessionRepository`), shared regardless of the chosen data backend.
 

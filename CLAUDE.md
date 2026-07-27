@@ -56,7 +56,7 @@ commands, patterns, docs, tech-decision notes, and config.
 | Agent execution | Claude Code — slash commands point to a role file in `lib/agents/*/*.md`; Claude Code adopts that persona and runs it directly in-session |
 | Coordination | **Orchestrator** agent (`lib/agents/orchestrator/`) — single conversational entry point, decides which agent to run and manages checkpoints (see "Pipeline") |
 | Artifact storage | Local filesystem (`views/`, `src/`) — no intermediate database for the pipeline itself |
-| Application database | **PostgreSQL 16**, real and live, already created by the user — `DATABASE_URL` pending configuration (see `.env.example`) |
+| Application database | **PostgreSQL 16**, real and live, already created by the user — `DATABASE_URL` configured (see `.env.example`) |
 | Postgres client | **`Bun.SQL`** native driver — no `pg`/node-postgres, no ORM (see `tecnologias/tecnologia_bbdd.md`) |
 | Backend | **Bun** + Express 5 + TypeScript |
 | Pipeline artifact validation | Zod (`lib/schemas/`) |
